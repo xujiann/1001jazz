@@ -10,3 +10,9 @@ node_modules/
 npm-debug.log*
 .cache/
 dist/
+
+# project-local helpers & source (not part of the website)
+1001jazz.txt
+push-to-github.bat
+push-to-github.sh
+update-github.bat

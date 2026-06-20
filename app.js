@@ -27,7 +27,7 @@
     else{const h=hashStr(s.artist+s.title)%360; c1=`hsl(${h} 42% 30%)`; c2=`hsl(${(h+40)%360} 48% 12%)`;}
     const accent = `hsl(${(hashStr(s.title)*7)%360} 60% 55%)`;
     const fs = big?"2.1rem":"1.25rem";
-    return `<div class="cover" style="background:linear-gradient(150deg,${c1},${c2})">
+    return `<div class="cover" data-song="${s.id}" style="background:linear-gradient(150deg,${c1},${c2})">
       <span class="c-label">${esc(s.label||"—")}</span>
       <div class="c-disc"></div>
       <div class="c-title" style="font-size:${fs}">
@@ -35,7 +35,57 @@
         ${esc(s.title)}
       </div>
       <span class="c-year">${s.year}</span>
+      <img class="cover-img" alt="${esc(s.title)} — ${esc(s.artist)} 专辑封面" loading="lazy">
     </div>`;
+  }
+
+  /* ---------- 真实专辑封面：iTunes Search API（客户端 JSONP + 缓存，失败回退程序化封面） ---------- */
+  const coverCache = {};
+  let jsonpSeq = 0;
+  function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function pickArtwork(song,data){
+    if(!data||!data.results||!data.results.length) return "";
+    const norm=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    const wantA=norm(song.artist), wantT=norm(song.title);
+    let best=data.results[0],score=-1;
+    data.results.forEach(r=>{
+      const a=norm(r.artistName), t=norm(r.trackName||r.collectionName);
+      let sc=0;
+      if(wantA&&(a.includes(wantA)||wantA.includes(a))) sc+=2;
+      if(wantT&&(t.includes(wantT)||wantT.includes(t))) sc+=2;
+      if(sc>score){score=sc;best=r;}
+    });
+    const url=best.artworkUrl100||best.artworkUrl60||"";
+    return url.replace(/\/\d+x\d+bb\.(jpg|png)/,"/600x600bb.$1");
+  }
+  function applyCover(imgEl,url){
+    if(!url||!imgEl) return;
+    imgEl.onload=()=>imgEl.classList.add("loaded");
+    imgEl.src=url;
+  }
+  function loadCover(song,imgEl){
+    if(song.id in coverCache){ applyCover(imgEl,coverCache[song.id]); return; }
+    const key="cov:"+song.id, cached=lsGet(key);
+    if(cached){ coverCache[song.id]=cached; applyCover(imgEl,cached); return; }
+    const cbName="__jzcb"+(jsonpSeq++);
+    const term=enc(song.artist+" "+song.title);
+    const sc=document.createElement("script");
+    let done=false;
+    const finish=url=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
+      coverCache[song.id]=url; if(url) lsSet(key,url); applyCover(imgEl,url); };
+    window[cbName]=data=>finish(pickArtwork(song,data));
+    sc.onerror=()=>finish("");
+    sc.src=`https://itunes.apple.com/search?term=${term}&entity=song&limit=10&callback=${cbName}`;
+    document.body.appendChild(sc);
+    setTimeout(()=>finish(""),9000);
+  }
+  function hydrateCovers(){
+    document.querySelectorAll(".cover[data-song]").forEach(c=>{
+      const img=c.querySelector(".cover-img");
+      const song=SONGS.find(s=>s.id===c.getAttribute("data-song"));
+      if(song&&img&&!img.src) loadCover(song,img);
+    });
   }
 
   function listenLinks(s){
@@ -293,6 +343,7 @@
     }
     app.innerHTML=html;
     window.scrollTo({top:0,behavior:"instant"});
+    hydrateCovers();
   }
   window.addEventListener("hashchange",router);
   window.addEventListener("DOMContentLoaded",router);
@@ -307,5 +358,5 @@
   }
   document.addEventListener("DOMContentLoaded",bindSearch);
 
-  if(document.readyState!=="loading") router();
+  if(document.readyState!=="loading"){ router(); bindSearch(); }
 })();

@@ -19,13 +19,25 @@
     "Riverside":["#244a2c","#0c1a10"], "Pacific Jazz":["#2a3d63","#0d1322"],
     "Contemporary":["#5a4a1d","#1c1608"], "Decca":["#3a2d5e","#120e22"]
   };
-  function coverHTML(a,big){
+  const PLAY_ICONS = {
+    spotify:'<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm4.59 14.42a.62.62 0 01-.86.21c-2.35-1.44-5.31-1.76-8.79-.96a.63.63 0 01-.28-1.22c3.81-.87 7.08-.5 9.72 1.11a.62.62 0 01.21.86zm1.22-2.72a.78.78 0 01-1.07.26c-2.69-1.65-6.79-2.13-9.97-1.17a.78.78 0 11-.45-1.49c3.63-1.1 8.15-.56 11.24 1.33.37.23.49.71.25 1.07zm.11-2.84C14.8 8.93 9.5 8.74 6.42 9.67a.93.93 0 11-.54-1.79c3.53-1.07 9.38-.86 13.08 1.34a.94.94 0 01-.96 1.6z"/></svg>',
+    youtube:'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
+  };
+  function coverHTML(a,big,quick){
     const theme = LABEL_THEME[a.label];
     let c1,c2;
     if(theme){[c1,c2]=theme;}
     else{const h=hashStr(a.artist+a.title)%360; c1=`hsl(${h} 42% 30%)`; c2=`hsl(${(h+40)%360} 48% 12%)`;}
     const accent = `hsl(${(hashStr(a.title)*7)%360} 60% 55%)`;
     const fs = big?"2.1rem":"1.2rem";
+    let overlay = "";
+    if(quick){
+      const L = listenLinks(a), yt=L.find(x=>x.k==="youtube"), sp=L.find(x=>x.k==="spotify");
+      overlay = `<div class="c-play">
+        <a class="cp-btn cp-yt" href="${yt.u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="在 YouTube 播放" aria-label="在 YouTube 播放">${PLAY_ICONS.youtube}</a>
+        <a class="cp-btn cp-sp" href="${sp.u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="在 Spotify 播放" aria-label="在 Spotify 播放">${PLAY_ICONS.spotify}</a>
+      </div>`;
+    }
     return `<div class="cover" data-album="${a.id}" style="background:linear-gradient(150deg,${c1},${c2})">
       <span class="c-label">${esc(a.label||"—")}</span>
       <div class="c-disc"></div>
@@ -35,6 +47,7 @@
       </div>
       <span class="c-year">${a.year}</span>
       <img class="cover-img" alt="${esc(a.title)} — ${esc(a.artist)} 专辑封面" loading="lazy">
+      ${overlay}
     </div>`;
   }
 
@@ -116,16 +129,17 @@
   function listenLinks(a){
     const q = enc(`${a.artist} ${a.title.replace(/^[^:]+:\s*/,"")}`);
     return [
-      {n:"Spotify",  u:`https://open.spotify.com/search/${q}`},
-      {n:"YouTube",  u:`https://www.youtube.com/results?search_query=${q}`},
-      {n:"Apple Music", u:`https://music.apple.com/search?term=${q}`},
-      {n:"Bandcamp", u:`https://bandcamp.com/search?q=${q}`}
+      {n:"Spotify",  k:"spotify",  u:`https://open.spotify.com/search/${q}`},
+      {n:"YouTube",  k:"youtube",  u:`https://www.youtube.com/results?search_query=${q}`},
+      {n:"Apple Music", k:"apple", u:`https://music.apple.com/search?term=${q}`},
+      {n:"Bandcamp", k:"bandcamp", u:`https://bandcamp.com/search?q=${q}`},
+      {n:"豆瓣", k:"douban", u:`https://search.douban.com/music/subject_search?search_text=${q}`}
     ];
   }
 
   function albumCard(a){
     return `<article class="song-card" onclick="location.hash='#/album/${a.id}'">
-      ${coverHTML(a)}
+      ${coverHTML(a,false,true)}
       <div class="meta">
         <div class="s-title">${esc(a.title.replace(/^[^:]+:\s*/,""))}</div>
         <div class="s-artist">${esc(a.artist)}</div>
@@ -175,7 +189,7 @@
     <section class="section">
       <div class="section-head"><h2>今日一张</h2><span class="tag">Today's Pick</span></div>
       <div class="today">
-        <div onclick="location.hash='#/album/${pick.id}'" style="cursor:pointer">${coverHTML(pick,true)}</div>
+        <div onclick="location.hash='#/album/${pick.id}'" style="cursor:pointer">${coverHTML(pick,true,true)}</div>
         <div class="t-body">
           <h3>${esc(pick.title.replace(/^[^:]+:\s*/,""))}</h3>
           <div class="t-artist">${esc(pick.artist)} · ${pick.year} · ${esc(pick.label)}</div>
@@ -304,7 +318,7 @@
   function albumPage(id){
     const a=ALBUMS.find(x=>x.id===id); if(!a) return notFound();
     const e=eraMap[a.era]||{};
-    const links=listenLinks(a).map(l=>`<a class="btn" href="${l.u}" target="_blank" rel="noopener">${l.n} ↗</a>`).join("");
+    const links=listenLinks(a).map(l=>`<a class="btn play ${l.k}" href="${l.u}" target="_blank" rel="noopener">${l.n} ↗</a>`).join("");
     const tag=(label,val,href)=> val?`<dt>${label}</dt><dd>${href?`<a href="${href}">${esc(val)}</a>`:esc(val)}</dd>`:"";
     const tagLinks=(arr,kind)=>arr.map(v=>`<a href="#/${kind}/${enc(v)}">${esc(v)}</a>`).join("");
     const related=ALBUMS.filter(x=>x.id!==a.id &&

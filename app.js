@@ -126,15 +126,29 @@
     });
   }
 
+  const PLATFORMS = {
+    netease:{n:"网易云音乐",color:"#c20c0c",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 18h-12a4 4 0 01-.7-7.93 5.5 5.5 0 0110.85-1.06A3.75 3.75 0 0118.5 18z"/></svg>'},
+    qq:{n:"QQ音乐",color:"#1bce6b",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 4v9.4a3 3 0 11-2-2.83V8l-4 1v6.4a3 3 0 11-2-2.83V6l8-2z"/></svg>'},
+    spotify:{n:"Spotify",color:"#1db954",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm4.6 14.4a.62.62 0 01-.86.21c-2.35-1.44-5.31-1.76-8.79-.96a.63.63 0 11-.28-1.22c3.81-.87 7.08-.5 9.72 1.11a.62.62 0 01.21.86zm1.22-2.72a.78.78 0 01-1.07.26c-2.69-1.65-6.79-2.13-9.97-1.17a.78.78 0 11-.45-1.49c3.63-1.1 8.15-.56 11.24 1.33.37.23.49.71.25 1.07zm.11-2.84C14.8 8.93 9.5 8.74 6.42 9.67a.93.93 0 11-.54-1.79c3.53-1.07 9.38-.86 13.08 1.34a.94.94 0 01-.96 1.6z"/></svg>'},
+    apple:{n:"Apple Music",color:"#fa233b",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.7A10.3 10.3 0 1012 22.3 10.3 10.3 0 0012 1.7zm4 5.1v6.7a2.2 2.2 0 11-1.3-2V9.2l-4.2.9v4.9a2.2 2.2 0 11-1.3-2V8.1L16 6.8z"/></svg>'},
+    youtube:{n:"YouTube",color:"#ff0000",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.8-.5-5.6c-.27-1-1.05-1.8-2.04-2.07C18.7 4 12 4 12 4s-6.7 0-8.46.33c-.99.27-1.77 1.07-2.04 2.07C1 8.2 1 12 1 12s0 3.8.5 5.6c.27 1 1.05 1.8 2.04 2.07C5.3 20 12 20 12 20s6.7 0 8.46-.33c.99-.27 1.77-1.07 2.04-2.07C23 15.8 23 12 23 12zM9.75 15.5v-7L16 12l-6.25 3.5z"/></svg>'},
+    bandcamp:{n:"Bandcamp",color:"#1da0c3",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.5 16.5l4.7-9H21.5l-4.7 9H2.5z"/></svg>'},
+    douban:{n:"豆瓣",color:"#2e963b",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.5h18v2.6H3zM3 17.4h18V20H3zM6.4 9h11.2l-1.5 6H7.9z"/></svg>'}
+  };
+
   function listenLinks(a){
     const q = enc(`${a.artist} ${a.title.replace(/^[^:]+:\s*/,"")}`);
-    return [
-      {n:"Spotify",  k:"spotify",  u:`https://open.spotify.com/search/${q}`},
-      {n:"YouTube",  k:"youtube",  u:`https://www.youtube.com/results?search_query=${q}`},
-      {n:"Apple Music", k:"apple", u:`https://music.apple.com/search?term=${q}`},
-      {n:"Bandcamp", k:"bandcamp", u:`https://bandcamp.com/search?q=${q}`},
-      {n:"豆瓣", k:"douban", u:`https://search.douban.com/music/subject_search?search_text=${q}`}
-    ];
+    const U = {
+      netease:`https://music.163.com/#/search/m/?s=${q}&type=10`,
+      qq:`https://y.qq.com/n/ryqq/search?w=${q}&t=album`,
+      spotify:`https://open.spotify.com/search/${q}`,
+      apple:`https://music.apple.com/search?term=${q}`,
+      youtube:`https://www.youtube.com/results?search_query=${q}`,
+      bandcamp:`https://bandcamp.com/search?q=${q}`,
+      douban:`https://search.douban.com/music/subject_search?search_text=${q}`
+    };
+    return ["netease","qq","spotify","apple","youtube","bandcamp","douban"]
+      .map(k=>({k,u:U[k],n:PLATFORMS[k].n,color:PLATFORMS[k].color,ic:PLATFORMS[k].ic}));
   }
 
   function albumCard(a){
@@ -172,7 +186,7 @@
     <section class="hero">
       <div class="kicker">从新奥尔良到伦敦 · 从78转唱片到流媒体</div>
       <h1>一千零一张<br><em>爵士</em>必听专辑</h1>
-      <p class="lead">按年代、流派、人物、唱片公司与封面进入爵士乐史。每张专辑旁边，是一段告诉你"它为什么重要、该从哪听起"的中文导读。</p>
+      <p class="lead">按年代、流派、人物、心情与乐器进入爵士乐史。每张专辑旁边，是一段中文导读。</p>
       <div class="stat-row">
         <div class="stat"><b>${ALBUMS.length}</b><span>张专辑</span></div>
         <div class="stat"><b>${ERAS.length}</b><span>历史时期</span></div>
@@ -197,12 +211,6 @@
           <a class="btn solid" href="#/album/${pick.id}">查看详情与试听 →</a>
         </div>
       </div>
-    </section>
-
-    <section class="section">
-      <div class="section-head"><h2>封面瀑布流</h2><span class="tag">Cover Wall</span>
-        <a href="#/all" class="muted" style="margin-left:auto;font-family:var(--label);font-size:.85rem">浏览全部 →</a></div>
-      <div class="grid cols">${featured.map(albumCard).join("")}</div>
     </section>
 
     <section class="section">
@@ -318,7 +326,7 @@
   function albumPage(id){
     const a=ALBUMS.find(x=>x.id===id); if(!a) return notFound();
     const e=eraMap[a.era]||{};
-    const links=listenLinks(a).map(l=>`<a class="btn play ${l.k}" href="${l.u}" target="_blank" rel="noopener">${l.n} ↗</a>`).join("");
+    const links=listenLinks(a).map(l=>`<a class="lbtn ${l.k}" href="${l.u}" target="_blank" rel="noopener" style="--bc:${l.color}"><span class="lbtn-ic">${l.ic}</span><span class="lbtn-n">${esc(l.n)}</span></a>`).join("");
     const tag=(label,val,href)=> val?`<dt>${label}</dt><dd>${href?`<a href="${href}">${esc(val)}</a>`:esc(val)}</dd>`:"";
     const tagLinks=(arr,kind)=>arr.map(v=>`<a href="#/${kind}/${enc(v)}">${esc(v)}</a>`).join("");
     const related=ALBUMS.filter(x=>x.id!==a.id &&
@@ -328,7 +336,7 @@
     return `${crumb()}
     <div class="detail">
       <div>${coverHTML(a,true)}
-        <div class="btn-row" style="margin-top:1rem">${links}</div>
+        <div class="listen"><div class="listen-label">在平台收听 · Listen on</div><div class="listen-grid">${links}</div></div>
         <p class="muted" style="font-size:.74rem;margin-top:.6rem">试听跳转至各平台搜索；本站不托管音频，封面来自 iTunes（失败时回退为程序化视觉）。</p>
       </div>
       <div>
@@ -350,6 +358,52 @@
     <div class="related section">
       <h4>延伸聆听 · 同年代 / 同艺术家 / 同流派</h4>
       <div class="grid cols">${related.map(albumCard).join("")}</div>
+    </div>`;
+  }
+
+  /* ---------- 关于 ---------- */
+  function aboutPage(){
+    const albumN=ALBUMS.length, eraN=ERAS.length,
+      artistN=new Set(ALBUMS.map(a=>a.artist)).size,
+      genreN=new Set(ALBUMS.flatMap(a=>a.genres)).size;
+    return `${crumb()}
+    <div class="about">
+      <header class="about-hero">
+        <div class="kicker">About · 关于本站</div>
+        <h1>一千零一张爵士必听专辑地图</h1>
+        <p class="lead">从新奥尔良到伦敦，从 78 转唱片到流媒体——一座可听、可看、可读的爵士乐地图。每张专辑旁边，是一段告诉你"它为什么重要、该从哪听起"的中文导读。</p>
+        <div class="about-stats">
+          <div><b>${albumN}</b><span>张专辑</span></div>
+          <div><b>${eraN}</b><span>历史时期</span></div>
+          <div><b>${artistN}</b><span>位艺术家</span></div>
+          <div><b>${genreN}</b><span>个流派</span></div>
+        </div>
+      </header>
+
+      <section class="about-sec">
+        <h2>这是什么</h2>
+        <p>1001 Jazz 是一个爵士乐<strong>策展</strong>项目，不是播放器。它把爵士乐史里的 1001 张关键专辑整理成一张可检索的地图，每张配中文导读、年代、流派、乐器与心情标签，帮你找到下一张该听的唱片。</p>
+      </section>
+
+      <section class="about-sec">
+        <h2>怎么逛</h2>
+        <p>顶部导航提供多个入口：<a href="#/eras">按年代</a>（13 个历史时期，从拉格泰姆到全球新爵士）、<a href="#/genres">按流派</a>、<a href="#/artists">按人物</a>、<a href="#/moods">按心情</a>、<a href="#/instruments">按乐器</a>，以及<a href="#/all">全部专辑</a>的全库搜索。每张专辑详情页还会推荐同年代 / 同艺术家 / 同流派的延伸聆听。</p>
+      </section>
+
+      <section class="about-sec legal">
+        <h2>合法性原则</h2>
+        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮一律跳转到 Spotify / Apple Music / YouTube / Bandcamp / 豆瓣 的搜索页，由各平台合法播放。专辑封面取自 iTunes 公共接口（客户端按需请求并本地缓存），加载失败时回退为程序化生成的视觉占位。全部导读内容为入门向介绍，仅供学习交流。</p>
+      </section>
+
+      <section class="about-sec">
+        <h2>技术栈</h2>
+        <p>纯静态单页网站，零构建、零后端、零第三方依赖：<code>index.html</code> 负责骨架与导航，<code>styles.css</code> 是暗色复古爵士视觉，<code>app.js</code> 实现 hash 路由、渲染、搜索与封面懒加载（IntersectionObserver 视口内才请求封面），<code>data.js</code> 存放 1001 张专辑数据。封面来自 iTunes Search API，本地 localStorage 缓存。可一键部署到 GitHub Pages / Vercel / Cloudflare Pages。</p>
+      </section>
+
+      <section class="about-sec dev">
+        <h2>开发者</h2>
+        <p>由 <strong>xujiann</strong> 设计与开发。问题反馈、纠错或建议，欢迎来信：<a href="mailto:popstudy@gmail.com">popstudy@gmail.com</a>。</p>
+      </section>
     </div>`;
   }
 
@@ -375,6 +429,7 @@
       case "instrument": html=instrumentPage(parts[1]);break;
       case "album": case "song": html=albumPage(parts[1]);break;
       case "all": html=allPage(parts[1]);break;
+      case "about": html=aboutPage();break;
       case "search":{const m=/q=([^&]*)/.exec(query||"");html=allPage(m?decodeURIComponent(m[1]):"");break;}
       default: html=notFound();
     }

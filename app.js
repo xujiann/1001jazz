@@ -32,10 +32,11 @@
     const fs = big?"2.1rem":"1.2rem";
     let overlay = "";
     if(quick){
-      const L = listenLinks(a), yt=L.find(x=>x.k==="youtube"), sp=L.find(x=>x.k==="spotify");
+      const L = listenLinks(a), yt=L.find(x=>x.k==="youtube"), sp=L.find(x=>x.k==="spotify"), ne=L.find(x=>x.k==="netease");
       overlay = `<div class="c-play">
-        <a class="cp-btn cp-yt" href="${yt.u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="在 YouTube 播放" aria-label="在 YouTube 播放">${PLAY_ICONS.youtube}</a>
+        <a class="cp-btn cp-ne" href="${ne.u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="在网易云音乐播放" aria-label="在网易云音乐播放">${ne.ic}</a>
         <a class="cp-btn cp-sp" href="${sp.u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="在 Spotify 播放" aria-label="在 Spotify 播放">${PLAY_ICONS.spotify}</a>
+        <a class="cp-btn cp-yt" href="${yt.u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="在 YouTube 播放" aria-label="在 YouTube 播放">${PLAY_ICONS.youtube}</a>
       </div>`;
     }
     return `<div class="cover" data-album="${a.id}" style="background:linear-gradient(150deg,${c1},${c2})">

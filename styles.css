@@ -132,6 +132,8 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .cp-btn:hover{filter:brightness(1.12)}
 .cp-yt{background:#ff0000}
 .cp-sp{background:#1db954}
+.cp-ne{background:#c20c0c}
+.cp-btn svg{width:20px;height:20px}
 @media (hover:none){.c-play{opacity:1;background:linear-gradient(0deg,rgba(0,0,0,.5),transparent 55%)}
   .cp-btn{transform:none;width:40px;height:40px}}
 .song-card .meta{padding:.8rem .9rem 1rem}
@@ -186,8 +188,8 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .lbtn-ic{width:22px;height:22px;display:grid;place-items:center;color:var(--bc);flex:0 0 auto;transition:transform .18s ease}
 .lbtn-ic svg{width:19px;height:19px;display:block}
 .lbtn-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lbtn:hover{border-color:var(--bc);background:color-mix(in srgb,var(--bc) 15%,transparent);color:var(--ink);transform:translateY(-2px)}
-.lbtn:hover .lbtn-ic{transform:scale(1.12)}
+.lbtn:hover{border-color:var(--bc);background:var(--bc);color:#fff;transform:translateY(-2px);box-shadow:0 7px 18px -7px var(--bc)}
+.lbtn:hover .lbtn-ic{color:#fff;transform:scale(1.12)}
 
 /* ---------- detail page ---------- */
 .detail{display:grid;grid-template-columns:340px 1fr;gap:2.5rem;align-items:start}
@@ -258,6 +260,10 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
 /* 网格淡入 */
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .grid.cols .song-card{animation:fadeUp .4s ease both}
+/* 唱片旋转动效：悬停时程序化封面的黑胶缓慢转动 */
+@keyframes vinylSpin{to{transform:rotate(360deg)}}
+.song-card:hover .c-disc,.today .cover:hover .c-disc,.detail .cover:hover .c-disc{animation:vinylSpin 9s linear infinite}
+@media (prefers-reduced-motion:reduce){.song-card:hover .c-disc,.today .cover:hover .c-disc,.detail .cover:hover .c-disc{animation:none}}
 
 /* ---------- footer ---------- */
 .site-footer{border-top:1px solid var(--line);margin-top:2rem;background:rgba(0,0,0,.25)}

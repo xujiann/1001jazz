@@ -2,6 +2,7 @@
 (function(){
   "use strict";
   const ALBUMS = window.ALBUMS, ERAS = window.ERAS;
+  const BIOS = window.ARTIST_BIOS || {};
   const eraMap = Object.fromEntries(ERAS.map(e=>[e.key,e]));
   const app = document.getElementById("app");
 
@@ -169,6 +170,24 @@
   function crumb(){ return `<div class="crumb"><a href="#/">← 返回首页</a></div>`; }
 
   /* ---------- 首页 ---------- */
+  // 精选艺术家模块：FEATURED_ARTISTS 人物卡（徽章+译名+生卒+作品数）
+  function featuredArtistsModule(){
+    const feat=(window.FEATURED_ARTISTS||[]).filter(n=>ALBUMS.some(a=>a.artist===n));
+    if(!feat.length) return "";
+    const cards=feat.map(name=>{
+      const b=BIOS[name], n=ALBUMS.filter(a=>a.artist===name).length, ls=b?lifeStr(b):"";
+      return `<div class="fa-card" onclick="location.hash='#/artist/${enc(name)}'" role="button" tabindex="0" aria-label="${esc(b?b.zh:name)}">
+        <div class="fa-medal">${esc(initials(name))}</div>
+        <div class="fa-zh">${esc(b?b.zh:name)}</div>
+        <div class="fa-en">${esc(name)}</div>
+        <div class="fa-n">${n} 张${ls?` · ${esc(ls)}`:""}</div>
+      </div>`;
+    }).join("");
+    return `<section class="section">
+      <div class="section-head"><h2>精选艺术家</h2><span class="tag">Featured · ${feat.length} 位</span></div>
+      <div class="fa-grid">${cards}</div>
+    </section>`;
+  }
   function home(){
     const day = Math.floor(Date.now()/864e5);
     const pick = ALBUMS[day % ALBUMS.length];
@@ -207,12 +226,14 @@
         <div onclick="location.hash='#/album/${pick.id}'" style="cursor:pointer">${coverHTML(pick,true,true)}</div>
         <div class="t-body">
           <h3>${esc(pick.title.replace(/^[^:]+:\s*/,""))}</h3>
-          <div class="t-artist">${esc(pick.artist)} · ${pick.year} · ${esc(pick.label)}</div>
+          <div class="t-artist">${esc(pick.artist)}${(BIOS[pick.artist]&&BIOS[pick.artist].zh)?`（${esc(BIOS[pick.artist].zh)}）`:""} · ${pick.year} · ${esc(pick.label)}</div>
           <p>${esc(pick.reason)}</p>
           <a class="btn solid" href="#/album/${pick.id}">查看详情与试听 →</a>
         </div>
       </div>
     </section>
+
+    ${featuredArtistsModule()}
 
     <section class="section">
       <div class="section-head"><h2>多种方式进入</h2><span class="tag">Browse</span></div>
@@ -266,6 +287,34 @@
   }
 
   /* ---------- 人物 ---------- */
+  // 生卒 / 活跃年展示串：乐队用 life，在世者用「生于」，其余用「生–卒」
+  function lifeStr(b){
+    if(!b) return "";
+    if(b.life) return b.life;
+    if(b.born && b.died) return b.born+"–"+b.died;
+    if(b.born) return "生于 "+b.born;
+    return "";
+  }
+  // 由英文名取首字母作徽章（乐队/带 & 的名字也能优雅处理）
+  function initials(name){
+    const parts=String(name).replace(/&/g," ").split(/\s+/).filter(Boolean);
+    const s=parts.slice(0,2).map(p=>p[0]).join("");
+    return (s||"♪").toUpperCase();
+  }
+  // 小传卡：无词条时返回空串（优雅降级）
+  function artistHero(name){
+    const b=BIOS[name]; if(!b) return "";
+    const meta=[lifeStr(b),b.country,b.role].filter(Boolean).join("　·　");
+    return `<div class="artist-hero">
+      <div class="ah-medal">${esc(initials(name))}</div>
+      <div class="ah-body">
+        <div class="ah-zh">${esc(b.zh||name)}</div>
+        <div class="ah-en">${esc(name)}</div>
+        ${meta?`<div class="ah-meta">${esc(meta)}</div>`:""}
+        <p class="ah-bio">${esc(b.bio)}</p>
+      </div>
+    </div>`;
+  }
   function artistsPage(){
     const m={};ALBUMS.forEach(a=>m[a.artist]=(m[a.artist]||0)+1);
     const feat=(window.FEATURED_ARTISTS||[]);
@@ -273,16 +322,35 @@
       const fa=feat.indexOf(a),fb=feat.indexOf(b);
       if(fa>=0&&fb>=0)return fa-fb; if(fa>=0)return -1; if(fb>=0)return 1; return a.localeCompare(b);
     });
-    const tiles=ordered.map(a=>
-      `<div class="tile" onclick="location.hash='#/artist/${enc(a)}'"><div class="t-k">ARTIST</div>
-       <h3>${esc(a)}</h3><div class="cnt">${m[a]} 张 →</div></div>`).join("");
-    return `${crumb()}<div class="section-head"><h2>按人物进入</h2><span class="tag">${ordered.length} Artists</span></div>
+    const bioN=ordered.filter(a=>BIOS[a]).length;
+    const tiles=ordered.map(a=>{
+      const b=BIOS[a], ls=b?lifeStr(b):"";
+      return `<div class="tile${b?" has-bio":""}" onclick="location.hash='#/artist/${enc(a)}'">
+        <div class="t-k">ARTIST${b?'<span class="bio-badge">小传</span>':""}</div>
+        <h3>${esc(a)}</h3>
+        ${b?`<div class="t-zh">${esc(b.zh)}${ls?` · ${esc(ls)}`:""}</div>`:""}
+        <div class="cnt">${m[a]} 张 →</div></div>`;
+    }).join("");
+    return `${crumb()}<div class="section-head"><h2>按人物进入</h2><span class="tag">${ordered.length} 位 · ${bioN} 篇小传</span></div>
       <div class="tile-grid">${tiles}</div>`;
   }
   function artistPage(a){
     const list=ALBUMS.filter(x=>x.artist===a).sort((x,y)=>x.year-y.year);
     if(!list.length) return notFound();
-    return `${crumb()}<div class="section-head"><h2>${esc(a)}</h2><span class="tag">${list.length} albums</span></div>${grid(list)}`;
+    const b=BIOS[a];
+    // 作品按 ERAS 顺序分组成 discography 时间线；只横跨单一时期时退回平铺网格
+    const groups=ERAS.map(e=>({e,items:list.filter(x=>x.era===e.key)})).filter(g=>g.items.length);
+    const grouped=groups.length>1;
+    const head=b
+      ? `<div class="section-head"><h2>全部作品</h2><span class="tag">${list.length} albums · ${grouped?"按时期":"按年份"}</span></div>`
+      : `<div class="section-head"><h2>${esc(a)}</h2><span class="tag">${list.length} albums · ${grouped?"按时期":"按年份"}</span></div>`;
+    const body=grouped
+      ? groups.map(g=>`<div class="disc-era">
+          <div class="disc-era-head"><span class="de-yr">${esc(g.e.years)}</span><span class="de-nm">${esc(g.e.name.split(" / ")[0])}</span><span class="de-n">${g.items.length} 张</span></div>
+          <div class="grid cols">${g.items.map(albumCard).join("")}</div>
+        </div>`).join("")
+      : grid(list);
+    return `${crumb()}${artistHero(a)}${head}${body}`;
   }
 
   /* ---------- 心情 / 乐器 ---------- */
@@ -314,7 +382,7 @@
     q=(q||"").trim().toLowerCase();
     let list=ALBUMS;
     if(q){
-      list=ALBUMS.filter(a=>(a.title+a.artist+a.label+a.genres.join(" ")+(eraMap[a.era]||{}).name)
+      list=ALBUMS.filter(a=>(a.title+a.artist+a.label+a.genres.join(" ")+(eraMap[a.era]||{}).name+" "+((BIOS[a.artist]||{}).zh||""))
         .toLowerCase().includes(q));
     }
     const head=q
@@ -343,7 +411,7 @@
       <div>
         <div class="d-album-kicker">${esc(a.label)} · ${a.year}</div>
         <h1>${esc(a.title.replace(/^[^:]+:\s*/,""))}</h1>
-        <div class="d-artist">${esc(a.artist)}</div>
+        <div class="d-artist"><a href="#/artist/${enc(a.artist)}">${esc(a.artist)}</a>${(BIOS[a.artist]&&BIOS[a.artist].zh)?`<span class="d-artist-zh">${esc(BIOS[a.artist].zh)}</span>`:""}</div>
         <div class="tags">${tagLinks(a.genres,"genre")}</div>
         <dl class="facts">
           ${tag("艺术家",a.artist,`#/artist/${enc(a.artist)}`)}

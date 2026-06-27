@@ -1,9 +1,10 @@
-# OS / editor
+# OS / editor / tooling
 .DS_Store
 Thumbs.db
 *.swp
 .idea/
 .vscode/
+.claude/
 
 # logs / deps (future use)
 node_modules/

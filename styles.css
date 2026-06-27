@@ -197,6 +197,8 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .detail .d-album-kicker{font-family:var(--label);letter-spacing:.14em;text-transform:uppercase;font-size:.82rem;color:var(--gold);margin-bottom:.5rem}
 .detail h1{font-family:var(--display);font-size:clamp(2rem,5vw,3.1rem);font-weight:600;line-height:1.05}
 .detail .d-artist{font-size:1.3rem;color:var(--gold-soft);margin:.2rem 0 1rem}
+.detail .d-artist a:hover{text-decoration:underline;text-underline-offset:3px}
+.d-artist-zh{font-family:var(--serif);font-size:.82em;color:var(--ink-soft);margin-left:.55rem}
 .facts{display:grid;grid-template-columns:auto 1fr;gap:.45rem 1.1rem;margin:1.2rem 0;
   font-size:.95rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:1rem 0}
 .facts dt{font-family:var(--label);letter-spacing:.08em;color:var(--ink-mute);font-size:.82rem;text-transform:uppercase}
@@ -232,6 +234,44 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .tile h3{font-family:var(--display);font-size:1.4rem;font-weight:600;margin:.2rem 0 .35rem;line-height:1.1}
 .tile p{font-size:.85rem;color:var(--ink-mute)}
 .tile .cnt{margin-top:.6rem;font-family:var(--label);font-size:.74rem;color:var(--ink-soft);letter-spacing:.06em}
+/* 人物卡：带小传者的标记与译名 */
+.tile .t-k{display:flex;align-items:center;gap:.5rem}
+.tile.has-bio{border-color:rgba(216,164,74,.34)}
+.bio-badge{font-family:var(--label);font-size:.6rem;letter-spacing:.06em;color:var(--bg);
+  background:var(--gold);border-radius:4px;padding:.1rem .42rem;line-height:1.4}
+.tile .t-zh{font-family:var(--serif);font-size:.82rem;color:var(--ink-soft);margin:.05rem 0 0}
+
+/* ---------- 艺术家小传卡 ---------- */
+.artist-hero{display:flex;gap:1.4rem;align-items:flex-start;
+  background:linear-gradient(135deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line);border-left:3px solid var(--gold);
+  border-radius:0 16px 16px 0;padding:1.6rem 1.8rem;margin-bottom:2.2rem}
+.ah-medal{flex:0 0 auto;width:68px;height:68px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--display);font-weight:600;font-size:1.7rem;color:var(--gold);letter-spacing:.02em;
+  border:2px solid var(--gold);background:rgba(216,164,74,.06)}
+.ah-body{min-width:0}
+.ah-zh{font-family:var(--display);font-weight:600;font-size:clamp(1.7rem,4vw,2.4rem);line-height:1.1;color:var(--ink)}
+.ah-en{font-family:var(--label);letter-spacing:.08em;font-size:.92rem;color:var(--gold-soft);margin-top:.12rem}
+.ah-meta{font-family:var(--label);font-size:.8rem;letter-spacing:.04em;color:var(--ink-mute);margin:.55rem 0 .1rem}
+.ah-bio{color:var(--ink-soft);font-size:1.04rem;line-height:1.75;margin-top:.55rem;max-width:760px}
+
+/* ---------- 人物页：按时期分组的作品时间线 ---------- */
+.disc-era{margin-bottom:1.9rem}
+.disc-era-head{display:flex;align-items:baseline;gap:.75rem;margin:0 0 .9rem;padding-bottom:.4rem;border-bottom:1px solid var(--line)}
+.de-yr{font-family:var(--label);color:var(--gold);font-size:.78rem;letter-spacing:.1em}
+.de-nm{font-family:var(--display);font-size:1.25rem;font-weight:600;color:var(--gold-soft)}
+.de-n{font-family:var(--label);font-size:.72rem;color:var(--ink-mute);margin-left:auto;letter-spacing:.06em}
+
+/* ---------- 首页：精选艺术家 ---------- */
+.fa-grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(148px,1fr))}
+.fa-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.3rem 1rem;text-align:center;cursor:pointer;transition:.2s}
+.fa-card:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:var(--shadow)}
+.fa-medal{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;margin:0 auto .65rem;
+  font-family:var(--display);font-weight:600;font-size:1.4rem;color:var(--gold);letter-spacing:.02em;
+  border:2px solid var(--gold);background:rgba(216,164,74,.06)}
+.fa-zh{font-family:var(--serif);font-size:1.05rem;font-weight:600;color:var(--ink);line-height:1.2}
+.fa-en{font-family:var(--label);font-size:.7rem;letter-spacing:.05em;color:var(--gold-soft);margin-top:.12rem}
+.fa-n{font-family:var(--label);font-size:.72rem;color:var(--ink-mute);margin-top:.5rem;letter-spacing:.04em}
 
 /* ---------- empty ---------- */
 .empty{text-align:center;color:var(--ink-mute);padding:3rem 1rem;font-style:italic}
@@ -298,4 +338,6 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
   .today .cover{margin:0 auto}
   .site-nav{order:3;width:100%;margin-left:0;justify-content:center}
   .nav-search{order:2;margin-left:auto}
+  .artist-hero{flex-direction:column;gap:.9rem;padding:1.3rem 1.4rem}
+  .ah-medal{width:54px;height:54px;font-size:1.35rem}
 }

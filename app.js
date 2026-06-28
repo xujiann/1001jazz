@@ -128,6 +128,41 @@
     });
   }
 
+  /* ---------- 艺术家肖像：维基百科 pageimages（JSONP + localStorage 缓存，失败回退字母徽章） ---------- */
+  // 与封面同理：不托管图片，客户端按需取公共接口缩略图。仅个人词条拉肖像（乐队/合作保留徽章）。
+  const portraitCache = {};
+  function applyPortrait(imgEl,medalEl,url){
+    if(!url||!imgEl) return;
+    const show=()=>{ imgEl.classList.add("loaded"); if(medalEl) medalEl.classList.add("has-photo"); };
+    imgEl.addEventListener("load",show);
+    imgEl.src=url;
+    if(imgEl.complete && imgEl.naturalWidth) show(); // 已缓存时 load 事件可能不再触发
+  }
+  function loadPortrait(name,imgEl,medalEl){
+    if(!imgEl) return;
+    if(name in portraitCache){ applyPortrait(imgEl,medalEl,portraitCache[name]); return; }
+    const key="art1:"+name, cached=lsGet(key);
+    if(cached!==null){ portraitCache[name]=cached; applyPortrait(imgEl,medalEl,cached); return; }
+    const title=(BIOS[name]&&BIOS[name].wiki)||name;
+    const cbName="__wkcb"+(jsonpSeq++);
+    const sc=document.createElement("script");
+    let done=false;
+    const finish=url=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
+      portraitCache[name]=url; lsSet(key,url); applyPortrait(imgEl,medalEl,url); };
+    window[cbName]=data=>{ let url=""; try{ const ps=data.query.pages, p=ps[Object.keys(ps)[0]];
+      if(p&&p.thumbnail&&p.thumbnail.source) url=p.thumbnail.source; }catch(e){} finish(url); };
+    sc.onerror=()=>finish("");
+    sc.src=`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=320&redirects=1&titles=${enc(title)}&callback=${cbName}`;
+    document.body.appendChild(sc);
+    setTimeout(()=>finish(""),8000);
+  }
+  function hydratePortraits(){
+    document.querySelectorAll(".ah-medal[data-portrait]").forEach(el=>{
+      const img=el.querySelector(".ah-photo");
+      if(img && !img.src) loadPortrait(el.getAttribute("data-portrait"),img,el);
+    });
+  }
+
   const PLATFORMS = {
     netease:{n:"网易云音乐",color:"#c20c0c",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 18h-12a4 4 0 01-.7-7.93 5.5 5.5 0 0110.85-1.06A3.75 3.75 0 0118.5 18z"/></svg>'},
     qq:{n:"QQ音乐",color:"#1bce6b",ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 4v9.4a3 3 0 11-2-2.83V8l-4 1v6.4a3 3 0 11-2-2.83V6l8-2z"/></svg>'},
@@ -305,13 +340,18 @@
   function artistHero(name){
     const b=BIOS[name]; if(!b) return "";
     const meta=[lifeStr(b),b.country,b.role].filter(Boolean).join("　·　");
+    const person=!!b.born; // 仅个人拉肖像；乐队/合作保留字母徽章
     return `<div class="artist-hero">
-      <div class="ah-medal">${esc(initials(name))}</div>
+      <div class="ah-medal"${person?` data-portrait="${esc(name)}"`:""}>
+        <span class="ah-mono">${esc(initials(name))}</span>
+        ${person?`<img class="ah-photo" alt="${esc(b.zh||name)} 肖像">`:""}
+      </div>
       <div class="ah-body">
         <div class="ah-zh">${esc(b.zh||name)}</div>
         <div class="ah-en">${esc(name)}</div>
         ${meta?`<div class="ah-meta">${esc(meta)}</div>`:""}
         <p class="ah-bio">${esc(b.bio)}</p>
+        <div class="ah-src">肖像来自维基百科（Wikipedia）</div>
       </div>
     </div>`;
   }
@@ -505,6 +545,7 @@
     app.innerHTML=html;
     window.scrollTo({top:0,behavior:"instant"});
     hydrateCovers();
+    hydratePortraits();
   }
   window.addEventListener("hashchange",router);
   window.addEventListener("DOMContentLoaded",router);

@@ -157,8 +157,8 @@
     setTimeout(()=>finish(""),8000);
   }
   function hydratePortraits(){
-    document.querySelectorAll(".ah-medal[data-portrait]").forEach(el=>{
-      const img=el.querySelector(".ah-photo");
+    document.querySelectorAll("[data-portrait]").forEach(el=>{
+      const img=el.querySelector("img");
       if(img && !img.src) loadPortrait(el.getAttribute("data-portrait"),img,el);
     });
   }
@@ -211,8 +211,12 @@
     if(!feat.length) return "";
     const cards=feat.map(name=>{
       const b=BIOS[name], n=ALBUMS.filter(a=>a.artist===name).length, ls=b?lifeStr(b):"";
+      const person=b&&b.born; // 仅个人拉肖像
       return `<div class="fa-card" onclick="location.hash='#/artist/${enc(name)}'" role="button" tabindex="0" aria-label="${esc(b?b.zh:name)}">
-        <div class="fa-medal">${esc(initials(name))}</div>
+        <div class="fa-medal"${person?` data-portrait="${esc(name)}"`:""}>
+          <span class="fa-mono">${esc(initials(name))}</span>
+          ${person?`<img class="fa-photo" alt="${esc(b.zh||name)} 肖像">`:""}
+        </div>
         <div class="fa-zh">${esc(b?b.zh:name)}</div>
         <div class="fa-en">${esc(name)}</div>
         <div class="fa-n">${n} 张${ls?` · ${esc(ls)}`:""}</div>

@@ -156,10 +156,33 @@
     document.body.appendChild(sc);
     setTimeout(()=>finish(""),8000);
   }
+  // 视口懒加载：仅当徽章进入视口附近才请求维基（人物索引页有数百个，避免一次性发出）
+  let portraitObserver=null;
+  function ensurePortraitObserver(){
+    if(portraitObserver||typeof IntersectionObserver==="undefined") return portraitObserver;
+    portraitObserver=new IntersectionObserver((entries,obs)=>{
+      entries.forEach(en=>{
+        if(!en.isIntersecting) return;
+        const el=en.target, img=el.querySelector("img");
+        obs.unobserve(el);
+        if(img && !img.src) loadPortrait(el.getAttribute("data-portrait"),img,el);
+      });
+    },{rootMargin:"250px"});
+    return portraitObserver;
+  }
   function hydratePortraits(){
-    document.querySelectorAll("[data-portrait]").forEach(el=>{
+    // 少量、在视口附近的（人物页小传卡、首页精选）即时加载
+    document.querySelectorAll(".ah-medal[data-portrait],.fa-medal[data-portrait]").forEach(el=>{
       const img=el.querySelector("img");
       if(img && !img.src) loadPortrait(el.getAttribute("data-portrait"),img,el);
+    });
+    // 大量（人物索引数百个）视口懒加载，避免一次性请求
+    const obs=ensurePortraitObserver();
+    document.querySelectorAll(".tile-medal[data-portrait]").forEach(el=>{
+      const img=el.querySelector("img");
+      if(!img||img.src) return;
+      if(obs) obs.observe(el);
+      else loadPortrait(el.getAttribute("data-portrait"),img,el);
     });
   }
 
@@ -368,10 +391,18 @@
     });
     const bioN=ordered.filter(a=>BIOS[a]).length;
     const tiles=ordered.map(a=>{
-      const b=BIOS[a], ls=b?lifeStr(b):"";
+      const b=BIOS[a], ls=b?lifeStr(b):"", person=b&&b.born;
       return `<div class="tile${b?" has-bio":""}" onclick="location.hash='#/artist/${enc(a)}'">
-        <div class="t-k">ARTIST${b?'<span class="bio-badge">小传</span>':""}</div>
-        <h3>${esc(a)}</h3>
+        <div class="tile-head">
+          <div class="tile-medal"${person?` data-portrait="${esc(a)}"`:""}>
+            <span class="tm-mono">${esc(initials(a))}</span>
+            ${person?`<img class="tm-photo" alt="${esc(b.zh||a)} 肖像">`:""}
+          </div>
+          <div class="tile-head-txt">
+            <div class="t-k">ARTIST${b?'<span class="bio-badge">小传</span>':""}</div>
+            <h3>${esc(a)}</h3>
+          </div>
+        </div>
         ${b?`<div class="t-zh">${esc(b.zh)}${ls?` · ${esc(ls)}`:""}</div>`:""}
         <div class="cnt">${m[a]} 张 →</div></div>`;
     }).join("");

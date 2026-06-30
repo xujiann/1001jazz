@@ -240,6 +240,16 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .bio-badge{font-family:var(--label);font-size:.6rem;letter-spacing:.06em;color:var(--bg);
   background:var(--gold);border-radius:4px;padding:.1rem .42rem;line-height:1.4}
 .tile .t-zh{font-family:var(--serif);font-size:.82rem;color:var(--ink-soft);margin:.05rem 0 0}
+/* 人物卡头部：肖像/字母徽章 + 名称 */
+.tile-head{display:flex;align-items:center;gap:.7rem}
+.tile-head-txt{min-width:0}
+.tile-head-txt h3{margin:.1rem 0 0}
+.tile-medal{position:relative;overflow:hidden;flex:0 0 auto;width:44px;height:44px;border-radius:50%;
+  display:grid;place-items:center;font-family:var(--display);font-weight:600;font-size:1.05rem;color:var(--gold);
+  letter-spacing:.02em;border:1.5px solid var(--gold);background:rgba(216,164,74,.06)}
+.tm-mono{line-height:1}
+.tm-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s ease}
+.tm-photo.loaded{opacity:1}
 
 /* ---------- 艺术家小传卡 ---------- */
 .artist-hero{display:flex;gap:1.4rem;align-items:flex-start;

@@ -367,4 +367,10 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
   .nav-search{order:2;margin-left:auto}
   .artist-hero{flex-direction:column;gap:.9rem;padding:1.3rem 1.4rem}
   .ah-medal{width:54px;height:54px;font-size:1.35rem}
+  .artist-filter-bar{gap:.6rem}
+  #artistFilter{flex:1 1 200px;width:auto}
+  .tile-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+}
+@media (max-width:420px){
+  .fa-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
 }

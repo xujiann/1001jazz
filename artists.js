@@ -254,7 +254,7 @@ window.ARTIST_BIOS = {
   "Bugge Wesseltoft":{zh:"布格·韦塞尔托夫特",born:1964,country:"挪威",role:"键盘 · 制作",bio:"挪威‘未来爵士’的旗手，以‘New Conception of Jazz’项目把原声爵士与浩室、电子节拍融合，开拓了北欧的新爵士声景。"},
   "Bunk Johnson":{zh:"邦克·约翰逊",born:1879,died:1949,country:"美国",role:"小号",bio:"新奥尔良早期的传奇人物，1940 年代被乐迷‘重新发现’并配上假牙重返舞台，掀起了传统爵士复兴运动。"},
   "Cab Calloway":{zh:"卡布·卡洛威",born:1907,died:1994,country:"美国",role:"演唱 · 大乐队领袖",bio:"‘Hi-De-Ho’的拟声之王，棉花俱乐部的台柱，以华丽的舞台魅力与《Minnie the Moocher》风靡一时。"},
-  "Cachao":{zh:"卡查奥",born:1918,died:2008,country:"古巴",role:"贝斯 · 作曲",wiki:"Israel López",bio:"曼波节奏的共同发明者与即兴‘descarga’（古巴jam）的开创者，被尊为古巴低音提琴的一代宗师。"},
+  "Cachao":{zh:"卡查奥",born:1918,died:2008,country:"古巴",role:"贝斯 · 作曲",bio:"曼波节奏的共同发明者与即兴‘descarga’（古巴jam）的开创者，被尊为古巴低音提琴的一代宗师。"},
   "Caldera":{zh:"Caldera（乐队）",life:"活跃 1976–1979",country:"美国",role:"拉丁融合乐队",bio:"洛杉矶的拉丁融合名团，把afro-cuban节奏、放克与融合爵士熔成绚烂的声响，是 1970 年代拉丁融合的隐藏珍宝。"},
   "Candido":{zh:"坎迪多",born:1921,died:2020,country:"古巴",role:"康加鼓",wiki:"Cándido Camero",bio:"把多只康加鼓同时演奏的技法带入美国爵士的古巴打击乐先驱，与吉莱斯皮、蒙克等无数大师合作，享年九十九岁。"},
   "Carl Perkins":{zh:"卡尔·珀金斯",born:1928,died:1958,country:"美国",role:"钢琴",bio:"西海岸的硬波普钢琴家（与摇滚同名者无关），因儿时小儿麻痹而以独特的横臂奏法弹奏低音，二十九岁早逝。"},

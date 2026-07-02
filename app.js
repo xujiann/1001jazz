@@ -143,7 +143,7 @@
     if(name in portraitCache){ applyPortrait(imgEl,medalEl,portraitCache[name]); return; }
     const key="art1:"+name, cached=lsGet(key);
     if(cached!==null){ portraitCache[name]=cached; applyPortrait(imgEl,medalEl,cached); return; }
-    const title=(BIOS[name]&&BIOS[name].wiki)||name;
+    const title=wikiTitle(name);
     const cbName="__wkcb"+(jsonpSeq++);
     const sc=document.createElement("script");
     let done=false;
@@ -156,7 +156,47 @@
     document.body.appendChild(sc);
     setTimeout(()=>finish(""),8000);
   }
-  // 视口懒加载：仅当徽章进入视口附近才请求维基（人物索引页有数百个，避免一次性发出）
+  // 批量：索引页数百个肖像合并成少量维基请求（每次 ≤40 标题），显著减少请求数
+  let portraitQueue=[], portraitTimer=null;
+  function wikiTitle(name){ return (BIOS[name]&&BIOS[name].wiki)||name; }
+  function queuePortrait(name,imgEl,medalEl){
+    if(!imgEl) return;
+    if(name in portraitCache){ applyPortrait(imgEl,medalEl,portraitCache[name]); return; }
+    const cached=lsGet("art1:"+name);
+    if(cached!==null){ portraitCache[name]=cached; applyPortrait(imgEl,medalEl,cached); return; }
+    portraitQueue.push({name,title:wikiTitle(name),imgEl,medalEl});
+    if(portraitQueue.length>=40) flushPortraitQueue();
+    else if(!portraitTimer) portraitTimer=setTimeout(flushPortraitQueue,150);
+  }
+  function flushPortraitQueue(){
+    if(portraitTimer){ clearTimeout(portraitTimer); portraitTimer=null; }
+    const batch=portraitQueue.splice(0,40);
+    if(!batch.length) return;
+    const titles=[...new Set(batch.map(b=>b.title))];
+    const cbName="__wkbat"+(jsonpSeq++);
+    const sc=document.createElement("script");
+    let done=false;
+    const finish=map=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
+      batch.forEach(it=>{ const url=map[it.title]||""; portraitCache[it.name]=url; lsSet("art1:"+it.name,url); applyPortrait(it.imgEl,it.medalEl,url); }); };
+    window[cbName]=data=>{
+      const map={};
+      try{
+        const q=data.query||{};
+        const norm={}; (q.normalized||[]).forEach(x=>norm[x.from]=x.to);
+        const redir={}; (q.redirects||[]).forEach(x=>redir[x.from]=x.to);
+        const resolve=t=>{ let cur=norm[t]||t,n=0; while(redir[cur]&&n++<6) cur=redir[cur]; return cur; };
+        const byTitle={}, pages=q.pages||{};
+        Object.keys(pages).forEach(k=>{ const p=pages[k]; if(p.title) byTitle[p.title]=p; });
+        titles.forEach(t=>{ const p=byTitle[resolve(t)]; map[t]=(p&&p.thumbnail&&p.thumbnail.source)||""; });
+      }catch(e){}
+      finish(map);
+    };
+    sc.onerror=()=>finish({});
+    sc.src=`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=320&pilimit=50&redirects=1&titles=${titles.map(enc).join("%7C")}&callback=${cbName}`;
+    document.body.appendChild(sc);
+    setTimeout(()=>finish({}),9000);
+  }
+  // 视口懒加载：仅当徽章进入视口附近才入队（人物索引页有数百个，避免一次性发出）
   let portraitObserver=null;
   function ensurePortraitObserver(){
     if(portraitObserver||typeof IntersectionObserver==="undefined") return portraitObserver;
@@ -165,7 +205,7 @@
         if(!en.isIntersecting) return;
         const el=en.target, img=el.querySelector("img");
         obs.unobserve(el);
-        if(img && !img.src) loadPortrait(el.getAttribute("data-portrait"),img,el);
+        if(img && !img.src) queuePortrait(el.getAttribute("data-portrait"),img,el);
       });
     },{rootMargin:"250px"});
     return portraitObserver;
@@ -557,14 +597,19 @@
         <p>顶部导航提供多个入口：<a href="#/eras">按年代</a>（13 个历史时期，从拉格泰姆到全球新爵士）、<a href="#/genres">按流派</a>、<a href="#/artists">按人物</a>、<a href="#/moods">按心情</a>、<a href="#/instruments">按乐器</a>，以及<a href="#/all">全部专辑</a>的全库搜索。每张专辑详情页还会推荐同年代 / 同艺术家 / 同流派的延伸聆听。</p>
       </section>
 
+      <section class="about-sec">
+        <h2>艺术家小传</h2>
+        <p>点进任一<a href="#/artists">人物</a>，页首是一张中文小传卡：译名、生卒 / 活跃年、国别、主奏乐器，以及一句"为什么重要"，配一张来自维基百科的肖像；下方把这位艺术家的作品<strong>按历史时期分组</strong>，形成一条聆听时间线。全站共收录 <strong>${artistN}</strong> 位艺术家的小传，覆盖全部 ${albumN} 张专辑。人物索引页支持按原名或中文译名<strong>即时筛选</strong>，全库搜索也认中文译名（搜"迈尔斯""柯川"即可）。乐队与合作条目回退为字母徽章。</p>
+      </section>
+
       <section class="about-sec legal">
         <h2>合法性原则</h2>
-        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮一律跳转到 Spotify / Apple Music / YouTube / Bandcamp / 豆瓣 的搜索页，由各平台合法播放。专辑封面取自 iTunes 公共接口（客户端按需请求并本地缓存），加载失败时回退为程序化生成的视觉占位。全部导读内容为入门向介绍，仅供学习交流。</p>
+        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮一律跳转到 Spotify / Apple Music / YouTube / Bandcamp / 豆瓣 的搜索页，由各平台合法播放。专辑封面取自 iTunes 公共接口，艺术家肖像取自<strong>维基百科 / 维基共享资源（Wikimedia Commons）</strong>公共接口——二者均由客户端按需请求、本地 localStorage 缓存，加载失败时回退为程序化视觉占位或字母徽章。全部文字导读与小传为入门向介绍，仅供学习交流。</p>
       </section>
 
       <section class="about-sec">
         <h2>技术栈</h2>
-        <p>纯静态单页网站，零构建、零后端、零第三方依赖：<code>index.html</code> 负责骨架与导航，<code>styles.css</code> 是暗色复古爵士视觉，<code>app.js</code> 实现 hash 路由、渲染、搜索与封面懒加载（IntersectionObserver 视口内才请求封面），<code>data.js</code> 存放 1001 张专辑数据。封面来自 iTunes Search API，本地 localStorage 缓存。可一键部署到 GitHub Pages / Vercel / Cloudflare Pages。</p>
+        <p>纯静态单页网站，零构建、零后端、零第三方依赖：<code>index.html</code> 负责骨架与导航，<code>styles.css</code> 是暗色复古爵士视觉，<code>app.js</code> 实现 hash 路由、渲染、搜索与懒加载，<code>data.js</code> 存放 1001 张专辑数据，<code>artists.js</code> 存放艺术家小传（<code>window.ARTIST_BIOS</code>）。专辑封面来自 iTunes Search API、艺术家肖像来自 Wikipedia pageimages，均用 IntersectionObserver 视口内才请求、并本地 localStorage 缓存；索引页的肖像还会合并成批量请求以减少往返。可一键部署到 GitHub Pages / Vercel / Cloudflare Pages。</p>
       </section>
 
       <section class="about-sec dev">

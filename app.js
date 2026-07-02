@@ -170,6 +170,23 @@
     },{rootMargin:"250px"});
     return portraitObserver;
   }
+  // 人物索引页内即时筛选（按原名 / 译名过滤，实时计数）
+  function hydrateArtistFilter(){
+    const inp=document.getElementById("artistFilter"); if(!inp) return;
+    const grid=document.getElementById("artistGrid"); if(!grid) return;
+    const tiles=[...grid.querySelectorAll(".tile")];
+    const shownEl=document.getElementById("artistShown"), emptyEl=document.getElementById("artistEmpty");
+    inp.addEventListener("input",()=>{
+      const q=inp.value.trim().toLowerCase();
+      let shown=0;
+      tiles.forEach(t=>{
+        const ok=!q || t.getAttribute("data-search").indexOf(q)>=0;
+        t.style.display=ok?"":"none"; if(ok) shown++;
+      });
+      if(shownEl) shownEl.textContent=shown;
+      if(emptyEl) emptyEl.style.display=shown?"none":"";
+    });
+  }
   function hydratePortraits(){
     // 少量、在视口附近的（人物页小传卡、首页精选）即时加载
     document.querySelectorAll(".ah-medal[data-portrait],.fa-medal[data-portrait]").forEach(el=>{
@@ -392,7 +409,8 @@
     const bioN=ordered.filter(a=>BIOS[a]).length;
     const tiles=ordered.map(a=>{
       const b=BIOS[a], ls=b?lifeStr(b):"", person=b&&b.born;
-      return `<div class="tile${b?" has-bio":""}" onclick="location.hash='#/artist/${enc(a)}'">
+      const search=(a+" "+(b?b.zh:"")).toLowerCase();
+      return `<div class="tile${b?" has-bio":""}" data-search="${esc(search)}" onclick="location.hash='#/artist/${enc(a)}'">
         <div class="tile-head">
           <div class="tile-medal"${person?` data-portrait="${esc(a)}"`:""}>
             <span class="tm-mono">${esc(initials(a))}</span>
@@ -407,7 +425,12 @@
         <div class="cnt">${m[a]} 张 →</div></div>`;
     }).join("");
     return `${crumb()}<div class="section-head"><h2>按人物进入</h2><span class="tag">${ordered.length} 位 · ${bioN} 篇小传</span></div>
-      <div class="tile-grid">${tiles}</div>`;
+      <div class="artist-filter-bar">
+        <input id="artistFilter" type="search" placeholder="筛选艺术家 / 译名…" autocomplete="off" aria-label="筛选艺术家">
+        <span class="aff-count"><b id="artistShown">${ordered.length}</b> / ${ordered.length} 位</span>
+      </div>
+      <div class="tile-grid" id="artistGrid">${tiles}</div>
+      <p class="empty" id="artistEmpty" style="display:none">没有匹配的艺术家。</p>`;
   }
   function artistPage(a){
     const list=ALBUMS.filter(x=>x.artist===a).sort((x,y)=>x.year-y.year);
@@ -581,6 +604,7 @@
     window.scrollTo({top:0,behavior:"instant"});
     hydrateCovers();
     hydratePortraits();
+    hydrateArtistFilter();
   }
   window.addEventListener("hashchange",router);
   window.addEventListener("DOMContentLoaded",router);

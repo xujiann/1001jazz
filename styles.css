@@ -31,6 +31,12 @@ body{
 }
 a{color:inherit;text-decoration:none}
 img{max-width:100%}
+/* 全局细节：防 iOS 字号膨胀、禁点击蓝闪、防横向溢出、金色选中与键盘焦点环 */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overflow-x:clip}
+*{-webkit-tap-highlight-color:transparent}
+::selection{background:rgba(216,164,74,.28);color:#fff}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:3px}
 
 /* ---------- header ---------- */
 .site-header{
@@ -331,6 +337,13 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
 @keyframes vinylSpin{to{transform:rotate(360deg)}}
 .song-card:hover .c-disc,.today .cover:hover .c-disc,.detail .cover:hover .c-disc{animation:vinylSpin 9s linear infinite}
 @media (prefers-reduced-motion:reduce){.song-card:hover .c-disc,.today .cover:hover .c-disc,.detail .cover:hover .c-disc{animation:none}}
+/* 触摸设备：轻点即时反馈 + 取消 :hover 抬升粘滞（否则手机上点过的卡片一直悬起） */
+.tile:active,.song-card:active,.tl-card:active,.fa-card:active{transform:scale(.98)}
+@media (hover:none){
+  .song-card:hover,.tile:hover,.tl-card:hover,.fa-card:hover{transform:none;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .song-card:hover .cover-img.loaded{transform:none}
+  .site-nav a:hover{border-color:transparent}
+}
 
 /* ---------- footer ---------- */
 .site-footer{border-top:1px solid var(--line);margin-top:2rem;background:rgba(0,0,0,.25)}
@@ -363,13 +376,37 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
   .detail .cover{width:min(340px,80vw);margin:0 auto}
   .today{grid-template-columns:1fr;text-align:center}
   .today .cover{margin:0 auto}
-  .site-nav{order:3;width:100%;margin-left:0;justify-content:center}
+  .site-header{gap:.7rem 1rem}
+  .brand-mark{width:2.7rem;height:2.7rem;font-size:1.05rem}
+  .brand-title{letter-spacing:.28em;font-size:.95rem}
+  .site-nav{order:3;width:100%;margin-left:0;justify-content:center;gap:.9rem 1.15rem}
+  .site-nav a{padding:.35rem 0}
   .nav-search{order:2;margin-left:auto}
+  .nav-search input{font-size:16px}          /* 防 iOS 聚焦时自动放大 */
   .artist-hero{flex-direction:column;gap:.9rem;padding:1.3rem 1.4rem}
   .ah-medal{width:54px;height:54px;font-size:1.35rem}
   .artist-filter-bar{gap:.6rem}
-  #artistFilter{flex:1 1 200px;width:auto}
+  #artistFilter{flex:1 1 200px;width:auto;font-size:16px}
   .tile-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .section{margin-block:2.3rem}
+  .hero{padding-top:2rem}
+  .hero .stat-row{gap:1.4rem}
+}
+@media (max-width:560px){
+  /* 紧凑头部：品牌 + 搜索同占首行，导航收成单行横向滚动（原来换行占 3 行、高 218px） */
+  .site-header{gap:.5rem .7rem;padding:.55rem 1rem}
+  .brand-sub{display:none}
+  .nav-search{order:2;flex:1 1 0;min-width:0;margin-left:.4rem}
+  .nav-search input{width:100%}
+  .site-nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
+    gap:1.15rem;scrollbar-width:none;padding-bottom:.1rem;-webkit-overflow-scrolling:touch}
+  .site-nav::-webkit-scrollbar{display:none}
+  .site-nav a{flex:0 0 auto;white-space:nowrap}
+  .hero h1{font-size:clamp(2.2rem,9vw,3rem)}
+  .ah-zh{font-size:clamp(1.5rem,7vw,2rem)}
+  .tile-grid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:.8rem}
+  .tile{padding:1rem}
+  .tile h3{font-size:1.2rem}
 }
 @media (max-width:420px){
   .fa-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}

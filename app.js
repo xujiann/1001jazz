@@ -147,14 +147,15 @@
     const cbName="__wkcb"+(jsonpSeq++);
     const sc=document.createElement("script");
     let done=false;
-    const finish=url=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
-      portraitCache[name]=url; lsSet(key,url); applyPortrait(imgEl,medalEl,url); };
+    // persist=true 仅在 API 成功返回时（含确实无图 ""）才写缓存；网络错误/超时不缓存，下次重试
+    const finish=(url,persist)=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
+      if(persist){ portraitCache[name]=url; lsSet(key,url); } applyPortrait(imgEl,medalEl,url); };
     window[cbName]=data=>{ let url=""; try{ const ps=data.query.pages, p=ps[Object.keys(ps)[0]];
-      if(p&&p.thumbnail&&p.thumbnail.source) url=p.thumbnail.source; }catch(e){} finish(url); };
-    sc.onerror=()=>finish("");
+      if(p&&p.thumbnail&&p.thumbnail.source) url=p.thumbnail.source; }catch(e){} finish(url,true); };
+    sc.onerror=()=>finish("",false);
     sc.src=`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=320&redirects=1&titles=${enc(title)}&callback=${cbName}`;
     document.body.appendChild(sc);
-    setTimeout(()=>finish(""),8000);
+    setTimeout(()=>finish("",false),8000);
   }
   // 批量：索引页数百个肖像合并成少量维基请求（每次 ≤40 标题），显著减少请求数
   let portraitQueue=[], portraitTimer=null;
@@ -176,8 +177,9 @@
     const cbName="__wkbat"+(jsonpSeq++);
     const sc=document.createElement("script");
     let done=false;
-    const finish=map=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
-      batch.forEach(it=>{ const url=map[it.title]||""; portraitCache[it.name]=url; lsSet("art1:"+it.name,url); applyPortrait(it.imgEl,it.medalEl,url); }); };
+    // persist=true 仅在 API 成功返回时才写缓存；网络错误/超时不缓存，下次重试
+    const finish=(map,persist)=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
+      batch.forEach(it=>{ const url=map[it.title]||""; if(persist){ portraitCache[it.name]=url; lsSet("art1:"+it.name,url); } applyPortrait(it.imgEl,it.medalEl,url); }); };
     window[cbName]=data=>{
       const map={};
       try{
@@ -189,12 +191,12 @@
         Object.keys(pages).forEach(k=>{ const p=pages[k]; if(p.title) byTitle[p.title]=p; });
         titles.forEach(t=>{ const p=byTitle[resolve(t)]; map[t]=(p&&p.thumbnail&&p.thumbnail.source)||""; });
       }catch(e){}
-      finish(map);
+      finish(map,true);
     };
-    sc.onerror=()=>finish({});
+    sc.onerror=()=>finish({},false);
     sc.src=`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=320&pilimit=50&redirects=1&titles=${titles.map(enc).join("%7C")}&callback=${cbName}`;
     document.body.appendChild(sc);
-    setTimeout(()=>finish({}),9000);
+    setTimeout(()=>finish({},false),9000);
   }
   // 视口懒加载：仅当徽章进入视口附近才入队（人物索引页有数百个，避免一次性发出）
   let portraitObserver=null;

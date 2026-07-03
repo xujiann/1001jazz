@@ -141,7 +141,7 @@
   function loadPortrait(name,imgEl,medalEl){
     if(!imgEl) return;
     if(name in portraitCache){ applyPortrait(imgEl,medalEl,portraitCache[name]); return; }
-    const key="art1:"+name, cached=lsGet(key);
+    const key="art2:"+name, cached=lsGet(key);
     if(cached!==null){ portraitCache[name]=cached; applyPortrait(imgEl,medalEl,cached); return; }
     const title=wikiTitle(name);
     const cbName="__wkcb"+(jsonpSeq++);
@@ -163,7 +163,7 @@
   function queuePortrait(name,imgEl,medalEl){
     if(!imgEl) return;
     if(name in portraitCache){ applyPortrait(imgEl,medalEl,portraitCache[name]); return; }
-    const cached=lsGet("art1:"+name);
+    const cached=lsGet("art2:"+name);
     if(cached!==null){ portraitCache[name]=cached; applyPortrait(imgEl,medalEl,cached); return; }
     portraitQueue.push({name,title:wikiTitle(name),imgEl,medalEl});
     if(portraitQueue.length>=40) flushPortraitQueue();
@@ -179,7 +179,7 @@
     let done=false;
     // persist=true 仅在 API 成功返回时才写缓存；网络错误/超时不缓存，下次重试
     const finish=(map,persist)=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
-      batch.forEach(it=>{ const url=map[it.title]||""; if(persist){ portraitCache[it.name]=url; lsSet("art1:"+it.name,url); } applyPortrait(it.imgEl,it.medalEl,url); }); };
+      batch.forEach(it=>{ const url=map[it.title]||""; if(persist){ portraitCache[it.name]=url; lsSet("art2:"+it.name,url); } applyPortrait(it.imgEl,it.medalEl,url); }); };
     window[cbName]=data=>{
       const map={};
       try{

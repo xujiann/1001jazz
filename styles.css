@@ -407,6 +407,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
   .tile-grid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:.8rem}
   .tile{padding:1rem}
   .tile h3{font-size:1.2rem}
+  /* 专辑卡窄屏 2 列（原来 190px 最小值只放得下 1 列，一屏很空） */
+  .grid.cols{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.8rem}
 }
 @media (max-width:420px){
   .fa-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}

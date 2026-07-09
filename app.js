@@ -652,7 +652,26 @@
     hydrateCovers();
     hydratePortraits();
     hydrateArtistFilter();
+    hydrateA11y();
   }
+  // 无障碍：把 onclick 卡片变成可 Tab 聚焦、可回车/空格激活（配合 :focus-visible 金色焦点环）
+  function hydrateA11y(){
+    document.querySelectorAll("[onclick]").forEach(el=>{
+      const t=el.tagName;
+      if(t==="A"||t==="BUTTON"||t==="INPUT") return;
+      if(!el.hasAttribute("tabindex")) el.setAttribute("tabindex","0");
+      if(!el.hasAttribute("role")) el.setAttribute("role","button");
+    });
+  }
+  document.addEventListener("keydown",ev=>{
+    if(ev.key!=="Enter" && ev.key!==" ") return;
+    const el=ev.target;
+    if(!el || !el.hasAttribute || !el.hasAttribute("onclick")) return;
+    const t=el.tagName;
+    if(t==="A"||t==="BUTTON"||t==="INPUT"||t==="TEXTAREA"||t==="SELECT") return;
+    ev.preventDefault();
+    el.click();
+  });
   window.addEventListener("hashchange",router);
   window.addEventListener("DOMContentLoaded",router);
 

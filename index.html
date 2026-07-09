@@ -31,6 +31,22 @@
 <link rel="dns-prefetch" href="https://www.wikidata.org">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;700&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"WebSite",
+  "name":"1001 Jazz｜一千零一张爵士必听专辑地图",
+  "url":"https://xujiann.github.io/1001jazz/",
+  "inLanguage":"zh-CN",
+  "description":"按年代、流派、人物与封面进入爵士乐史。1001 张必听专辑，每张配中文导读、546 位艺术家小传与合法试听跳转。",
+  "author":{"@type":"Person","name":"xujiann"},
+  "potentialAction":{
+    "@type":"SearchAction",
+    "target":"https://xujiann.github.io/1001jazz/#/search?q={search_term_string}",
+    "query-input":"required name=search_term_string"
+  }
+}
+</script>
 </head>
 <body>
 <header class="site-header">
@@ -51,7 +67,7 @@
     <a href="#/about">关于</a>
   </nav>
   <div class="nav-search">
-    <input id="globalSearch" type="search" placeholder="搜索专辑 / 艺术家 / 厂牌…" autocomplete="off">
+    <input id="globalSearch" type="search" placeholder="搜索专辑 / 艺术家 / 厂牌…" autocomplete="off" aria-label="搜索专辑、艺术家或唱片公司">
   </div>
 </header>
 

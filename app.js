@@ -4,6 +4,7 @@
   const ALBUMS = window.ALBUMS, ERAS = window.ERAS;
   const BIOS = window.ARTIST_BIOS || {};
   const eraMap = Object.fromEntries(ERAS.map(e=>[e.key,e]));
+  const albumById = new Map(ALBUMS.map(a=>[a.id,a]));   // O(1) 查找，替代多处 ALBUMS.find
   const app = document.getElementById("app");
 
   /* ---------- 工具 ---------- */
@@ -110,7 +111,7 @@
       entries.forEach(en=>{
         if(!en.isIntersecting) return;
         const c=en.target, img=c.querySelector(".cover-img");
-        const album=ALBUMS.find(a=>a.id===c.getAttribute("data-album"));
+        const album=albumById.get(c.getAttribute("data-album"));
         obs.unobserve(c);
         if(album&&img&&!img.src) loadCover(album,img);
       });
@@ -124,7 +125,7 @@
       const img=c.querySelector(".cover-img");
       if(!img||img.src) return;
       if(obs) obs.observe(c);
-      else{ const album=ALBUMS.find(a=>a.id===c.getAttribute("data-album")); if(album) loadCover(album,img); }
+      else{ const album=albumById.get(c.getAttribute("data-album")); if(album) loadCover(album,img); }
     });
   }
 
@@ -222,7 +223,7 @@
       const q=inp.value.trim().toLowerCase();
       let shown=0;
       tiles.forEach(t=>{
-        const ok=!q || t.getAttribute("data-search").indexOf(q)>=0;
+        const ok=!q || (t.getAttribute("data-search")||"").indexOf(q)>=0;
         t.style.display=ok?"":"none"; if(ok) shown++;
       });
       if(shownEl) shownEl.textContent=shown;
@@ -276,7 +277,7 @@
       <div class="meta">
         <div class="s-title">${esc(a.title.replace(/^[^:]+:\s*/,""))}</div>
         <div class="s-artist">${esc(a.artist)}</div>
-        <div class="s-sub">${a.year} · ${esc((eraMap[a.era]||{}).name.split(" / ")[0]||a.era)}</div>
+        <div class="s-sub">${a.year} · ${esc(((eraMap[a.era]||{}).name||a.era).split(" / ")[0])}</div>
       </div>
     </article>`;
   }
@@ -312,7 +313,6 @@
   function home(){
     const day = Math.floor(Date.now()/864e5);
     const pick = ALBUMS[day % ALBUMS.length];
-    const featured = ALBUMS.filter((_,i)=>[5,11,17,21,24,29,35,41,53,60,71].includes(i));
     const tl = ERAS.map(e=>{
       const n = ALBUMS.filter(a=>a.era===e.key).length;
       return `<div class="tl-card" onclick="location.hash='#/era/${e.key}'">
@@ -533,7 +533,7 @@
 
   /* ---------- 详情 ---------- */
   function albumPage(id){
-    const a=ALBUMS.find(x=>x.id===id); if(!a) return notFound();
+    const a=albumById.get(id); if(!a) return notFound();
     const e=eraMap[a.era]||{};
     const links=listenLinks(a).map(l=>`<a class="lbtn ${l.k}" href="${l.u}" target="_blank" rel="noopener" style="--bc:${l.color}"><span class="lbtn-ic">${l.ic}</span><span class="lbtn-n">${esc(l.n)}</span></a>`).join("");
     const tag=(label,val,href)=> val?`<dt>${label}</dt><dd>${href?`<a href="${href}">${esc(val)}</a>`:esc(val)}</dd>`:"";
@@ -625,10 +625,11 @@
 
   /* ---------- 路由 ---------- */
   function router(){
+    let html;
+    try{
     const h=location.hash.replace(/^#\/?/,"");
     const [path,query]=h.split("?");
     const parts=path.split("/").filter(Boolean).map(decodeURIComponent);
-    let html;
     switch(parts[0]){
       case undefined: case "": html=home();break;
       case "eras": html=erasPage();break;
@@ -647,6 +648,7 @@
       case "search":{const m=/q=([^&]*)/.exec(query||"");html=allPage(m?decodeURIComponent(m[1]):"");break;}
       default: html=notFound();
     }
+    }catch(err){ html=notFound(); }
     app.innerHTML=html;
     window.scrollTo({top:0,behavior:"instant"});
     hydrateCovers();

@@ -196,6 +196,11 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .lbtn-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lbtn:hover{border-color:var(--bc);background:var(--bc);color:#fff;transform:translateY(-2px);box-shadow:0 7px 18px -7px var(--bc)}
 .lbtn:hover .lbtn-ic{color:#fff;transform:scale(1.12)}
+/* 直达态：Apple Music 按钮解析到具体专辑后描金 + 「直达」小标 */
+.lbtn.is-direct{border-color:var(--gold)}
+.lbtn.is-direct::after{content:"直达";flex:0 0 auto;margin-left:auto;font-size:.6rem;letter-spacing:.05em;
+  color:var(--gold);border:1px solid var(--gold);border-radius:5px;padding:.05rem .3rem;line-height:1.4}
+.lbtn.is-direct:hover::after{color:#fff;border-color:rgba(255,255,255,.7)}
 
 /* ---------- detail page ---------- */
 .detail{display:grid;grid-template-columns:340px 1fr;gap:2.5rem;align-items:start}

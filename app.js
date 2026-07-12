@@ -67,8 +67,9 @@
     t = t.replace(/\s*\([^)]*\)\s*$/,"").trim();
     return a.artist + " " + t;
   }
-  function pickArtwork(album,data){
-    if(!data||!data.results||!data.results.length) return "";
+  // 取与本专辑最匹配的 iTunes 结果；同一结果里既有封面又有直达专辑页 URL
+  function pickBest(album,data){
+    if(!data||!data.results||!data.results.length) return null;
     const norm=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
     const wantA=norm(album.artist), wantT=norm(album.title.replace(/^[^:]+:\s*/,""));
     let best=data.results[0],score=-1;
@@ -79,25 +80,38 @@
       if(wantT&&(t.includes(wantT)||wantT.includes(t))) sc+=3;
       if(sc>score){score=sc;best=r;}
     });
-    const url=best.artworkUrl100||best.artworkUrl60||"";
-    return url.replace(/\/\d+x\d+bb\.(jpg|png)/,"/600x600bb.$1");
+    return best;
   }
+  function artOf(r){ if(!r) return ""; const url=r.artworkUrl100||r.artworkUrl60||""; return url.replace(/\/\d+x\d+bb\.(jpg|png)/,"/600x600bb.$1"); }
+  function appleLinkOf(r){ return (r&&r.collectionViewUrl)||""; }
   function applyCover(imgEl,url){
     if(!url||!imgEl) return;
     imgEl.onload=()=>imgEl.classList.add("loaded");
     imgEl.src=url;
   }
+  // 直达 Apple Music 专辑：与封面同一次 iTunes 请求取得 collectionViewUrl，事后把详情页的
+  // Apple Music 按钮从「搜索页」改写为「直达该专辑」（progressive，取不到则保持搜索兜底）
+  const appLinkCache = {};
+  function applyAppleLink(id,url){
+    if(!url) return;
+    document.querySelectorAll('[data-applink="'+id+'"]').forEach(el=>{
+      el.href=url; el.classList.add("is-direct"); el.title="在 Apple Music 打开该专辑（直达）";
+    });
+  }
   function loadCover(album,imgEl){
-    if(album.id in coverCache){ applyCover(imgEl,coverCache[album.id]); return; }
-    const key="cov2:"+album.id, cached=lsGet(key);
-    if(cached){ coverCache[album.id]=cached; applyCover(imgEl,cached); return; }
+    if(album.id in coverCache){ applyCover(imgEl,coverCache[album.id]); applyAppleLink(album.id,appLinkCache[album.id]); return; }
+    const key="cov3:"+album.id, cached=lsGet(key);
+    if(cached){ coverCache[album.id]=cached; const al=lsGet("alk:"+album.id)||""; appLinkCache[album.id]=al;
+      applyCover(imgEl,cached); applyAppleLink(album.id,al); return; }
     const cbName="__jzcb"+(jsonpSeq++);
     const term=enc(albumQuery(album));
     const sc=document.createElement("script");
     let done=false;
-    const finish=url=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
-      coverCache[album.id]=url; if(url) lsSet(key,url); applyCover(imgEl,url); };
-    window[cbName]=data=>finish(pickArtwork(album,data));
+    const finish=(url,link)=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
+      coverCache[album.id]=url; if(url) lsSet(key,url);
+      appLinkCache[album.id]=link||""; if(link) lsSet("alk:"+album.id,link);
+      applyCover(imgEl,url); applyAppleLink(album.id,link||""); };
+    window[cbName]=data=>{ const b=pickBest(album,data); finish(artOf(b),appleLinkOf(b)); };
     sc.onerror=()=>finish("");
     sc.src=`https://itunes.apple.com/search?term=${term}&entity=album&limit=8&callback=${cbName}`;
     document.body.appendChild(sc);
@@ -535,7 +549,7 @@
   function albumPage(id){
     const a=albumById.get(id); if(!a) return notFound();
     const e=eraMap[a.era]||{};
-    const links=listenLinks(a).map(l=>`<a class="lbtn ${l.k}" href="${l.u}" target="_blank" rel="noopener" style="--bc:${l.color}"><span class="lbtn-ic">${l.ic}</span><span class="lbtn-n">${esc(l.n)}</span></a>`).join("");
+    const links=listenLinks(a).map(l=>`<a class="lbtn ${l.k}"${l.k==="apple"?` data-applink="${a.id}"`:""} href="${l.u}" target="_blank" rel="noopener" style="--bc:${l.color}"><span class="lbtn-ic">${l.ic}</span><span class="lbtn-n">${esc(l.n)}</span></a>`).join("");
     const tag=(label,val,href)=> val?`<dt>${label}</dt><dd>${href?`<a href="${href}">${esc(val)}</a>`:esc(val)}</dd>`:"";
     const tagLinks=(arr,kind)=>arr.map(v=>`<a href="#/${kind}/${enc(v)}">${esc(v)}</a>`).join("");
     const related=ALBUMS.filter(x=>x.id!==a.id &&
@@ -546,7 +560,7 @@
     <div class="detail">
       <div>${coverHTML(a,true)}
         <div class="listen"><div class="listen-label">在平台收听 · Listen on</div><div class="listen-grid">${links}</div></div>
-        <p class="muted" style="font-size:.74rem;margin-top:.6rem">试听跳转至各平台搜索；本站不托管音频，封面来自 iTunes（失败时回退为程序化视觉）。</p>
+        <p class="muted" style="font-size:.74rem;margin-top:.6rem">Apple Music 尽量<strong>直达该专辑</strong>，其余平台跳转搜索页；本站不托管音频，封面来自 iTunes（失败时回退为程序化视觉）。</p>
       </div>
       <div>
         <div class="d-album-kicker">${esc(a.label)} · ${a.year}</div>
@@ -606,7 +620,7 @@
 
       <section class="about-sec legal">
         <h2>合法性原则</h2>
-        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮一律跳转到 Spotify / Apple Music / YouTube / Bandcamp / 豆瓣 的搜索页，由各平台合法播放。专辑封面取自 iTunes 公共接口，艺术家肖像取自<strong>维基百科 / 维基共享资源（Wikimedia Commons）</strong>公共接口——二者均由客户端按需请求、本地 localStorage 缓存，加载失败时回退为程序化视觉占位或字母徽章。全部文字导读与小传为入门向介绍，仅供学习交流。</p>
+        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮跳转到网易云 / QQ音乐 / Spotify / Apple Music / YouTube / Bandcamp / 豆瓣，由各平台合法播放——其中 Apple Music 借 iTunes 公共接口尽量直达该专辑页，其余为平台搜索页。专辑封面取自 iTunes 公共接口，艺术家肖像取自<strong>维基百科 / 维基共享资源（Wikimedia Commons）</strong>公共接口——二者均由客户端按需请求、本地 localStorage 缓存，加载失败时回退为程序化视觉占位或字母徽章。全部文字导读与小传为入门向介绍，仅供学习交流。</p>
       </section>
 
       <section class="about-sec">

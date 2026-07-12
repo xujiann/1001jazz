@@ -189,6 +189,15 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 /* ---------- listen buttons (detail) ---------- */
 .listen{margin-top:1.1rem;background:linear-gradient(135deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem}
 .listen-label{font-family:var(--label);letter-spacing:.16em;text-transform:uppercase;font-size:.72rem;color:var(--ink-mute);margin-bottom:.75rem}
+/* 智能链接（album.link）：解析到苹果 id 后出现的多平台直达主按钮 */
+.smartlink{display:flex;align-items:center;gap:.7rem;margin-bottom:.85rem;padding:.7rem 1rem;border-radius:12px;
+  background:linear-gradient(135deg,var(--gold),#b57f2c);color:#1a1206;
+  box-shadow:0 8px 22px -12px var(--gold);transition:transform .18s ease,box-shadow .18s ease}
+.smartlink[hidden]{display:none}
+.smartlink:hover{transform:translateY(-2px);box-shadow:0 12px 28px -12px var(--gold)}
+.sl-ico{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.18);font-size:.78rem}
+.sl-txt{display:flex;flex-direction:column;font-family:var(--label);font-weight:600;font-size:.98rem;letter-spacing:.02em;line-height:1.15}
+.sl-txt small{font-weight:400;font-size:.68rem;opacity:.75;margin-top:.1rem}
 .listen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(142px,1fr));gap:.55rem}
 .lbtn{display:flex;align-items:center;gap:.55rem;padding:.55rem .75rem;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink-soft);font-family:var(--label);font-size:.88rem;letter-spacing:.02em;line-height:1;transition:transform .18s ease,border-color .18s ease,background .18s ease,color .18s ease}
 .lbtn-ic{width:22px;height:22px;display:grid;place-items:center;color:var(--bc);flex:0 0 auto;transition:transform .18s ease}

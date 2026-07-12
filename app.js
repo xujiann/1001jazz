@@ -84,6 +84,7 @@
   }
   function artOf(r){ if(!r) return ""; const url=r.artworkUrl100||r.artworkUrl60||""; return url.replace(/\/\d+x\d+bb\.(jpg|png)/,"/600x600bb.$1"); }
   function appleLinkOf(r){ return (r&&r.collectionViewUrl)||""; }
+  function collectionIdOf(r){ return (r&&r.collectionId)?String(r.collectionId):""; }
   function applyCover(imgEl,url){
     if(!url||!imgEl) return;
     imgEl.onload=()=>imgEl.classList.add("loaded");
@@ -91,27 +92,37 @@
   }
   // 直达 Apple Music 专辑：与封面同一次 iTunes 请求取得 collectionViewUrl，事后把详情页的
   // Apple Music 按钮从「搜索页」改写为「直达该专辑」（progressive，取不到则保持搜索兜底）
-  const appLinkCache = {};
+  const appLinkCache = {}, smartCache = {};
   function applyAppleLink(id,url){
     if(!url) return;
     document.querySelectorAll('[data-applink="'+id+'"]').forEach(el=>{
       el.href=url; el.classList.add("is-direct"); el.title="在 Apple Music 打开该专辑（直达）";
     });
   }
+  // 智能链接：用苹果专辑 id 生成 album.link（Odesli）落地页，一键跳到多平台的该专辑直达
+  function applySmartLink(id,cid){
+    if(!cid) return;
+    document.querySelectorAll('[data-smartlink="'+id+'"]').forEach(el=>{
+      el.href="https://album.link/i/"+cid; el.hidden=false;
+    });
+  }
   function loadCover(album,imgEl){
-    if(album.id in coverCache){ applyCover(imgEl,coverCache[album.id]); applyAppleLink(album.id,appLinkCache[album.id]); return; }
+    if(album.id in coverCache){ applyCover(imgEl,coverCache[album.id]); applyAppleLink(album.id,appLinkCache[album.id]); applySmartLink(album.id,smartCache[album.id]); return; }
     const key="cov3:"+album.id, cached=lsGet(key);
-    if(cached){ coverCache[album.id]=cached; const al=lsGet("alk:"+album.id)||""; appLinkCache[album.id]=al;
-      applyCover(imgEl,cached); applyAppleLink(album.id,al); return; }
+    if(cached){ coverCache[album.id]=cached;
+      const al=lsGet("alk:"+album.id)||""; appLinkCache[album.id]=al;
+      const cid=lsGet("sl:"+album.id)||""; smartCache[album.id]=cid;
+      applyCover(imgEl,cached); applyAppleLink(album.id,al); applySmartLink(album.id,cid); return; }
     const cbName="__jzcb"+(jsonpSeq++);
     const term=enc(albumQuery(album));
     const sc=document.createElement("script");
     let done=false;
-    const finish=(url,link)=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
+    const finish=(url,link,cid)=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
       coverCache[album.id]=url; if(url) lsSet(key,url);
       appLinkCache[album.id]=link||""; if(link) lsSet("alk:"+album.id,link);
-      applyCover(imgEl,url); applyAppleLink(album.id,link||""); };
-    window[cbName]=data=>{ const b=pickBest(album,data); finish(artOf(b),appleLinkOf(b)); };
+      smartCache[album.id]=cid||""; if(cid) lsSet("sl:"+album.id,cid);
+      applyCover(imgEl,url); applyAppleLink(album.id,link||""); applySmartLink(album.id,cid||""); };
+    window[cbName]=data=>{ const b=pickBest(album,data); finish(artOf(b),appleLinkOf(b),collectionIdOf(b)); };
     sc.onerror=()=>finish("");
     sc.src=`https://itunes.apple.com/search?term=${term}&entity=album&limit=8&callback=${cbName}`;
     document.body.appendChild(sc);
@@ -559,7 +570,11 @@
     return `${crumb()}
     <div class="detail">
       <div>${coverHTML(a,true)}
-        <div class="listen"><div class="listen-label">在平台收听 · Listen on</div><div class="listen-grid">${links}</div></div>
+        <div class="listen">
+          <a class="smartlink" data-smartlink="${a.id}" href="#" target="_blank" rel="noopener" hidden><span class="sl-ico">▶</span><span class="sl-txt">打开专辑 · 多平台直达<small>Apple · Tidal · Deezer · Amazon · Spotify…</small></span></a>
+          <div class="listen-label">在平台收听 · Listen on</div>
+          <div class="listen-grid">${links}</div>
+        </div>
         <p class="muted" style="font-size:.74rem;margin-top:.6rem">Apple Music 尽量<strong>直达该专辑</strong>，其余平台跳转搜索页；本站不托管音频，封面来自 iTunes（失败时回退为程序化视觉）。</p>
       </div>
       <div>
@@ -620,7 +635,7 @@
 
       <section class="about-sec legal">
         <h2>合法性原则</h2>
-        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮跳转到网易云 / QQ音乐 / Spotify / Apple Music / YouTube / Bandcamp / 豆瓣，由各平台合法播放——其中 Apple Music 借 iTunes 公共接口尽量直达该专辑页，其余为平台搜索页。专辑封面取自 iTunes 公共接口，艺术家肖像取自<strong>维基百科 / 维基共享资源（Wikimedia Commons）</strong>公共接口——二者均由客户端按需请求、本地 localStorage 缓存，加载失败时回退为程序化视觉占位或字母徽章。全部文字导读与小传为入门向介绍，仅供学习交流。</p>
+        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮跳转到网易云 / QQ音乐 / Spotify / Apple Music / YouTube / Bandcamp / 豆瓣，由各平台合法播放——其中 Apple Music 借 iTunes 公共接口尽量直达该专辑页，其余为平台搜索页。详情页顶部的「多平台直达」按钮借第三方链接服务 <a href="https://odesli.co" target="_blank" rel="noopener">album.link（Odesli）</a> 用苹果专辑 id 解析到含 Apple / Tidal / Deezer / Amazon 等多平台的该专辑落地页（不含国内平台，网易云 / QQ 请用下方按钮）。专辑封面取自 iTunes 公共接口，艺术家肖像取自<strong>维基百科 / 维基共享资源（Wikimedia Commons）</strong>公共接口——二者均由客户端按需请求、本地 localStorage 缓存，加载失败时回退为程序化视觉占位或字母徽章。全部文字导读与小传为入门向介绍，仅供学习交流。</p>
       </section>
 
       <section class="about-sec">

@@ -87,8 +87,10 @@
   function collectionIdOf(r){ return (r&&r.collectionId)?String(r.collectionId):""; }
   function applyCover(imgEl,url){
     if(!url||!imgEl) return;
-    imgEl.onload=()=>imgEl.classList.add("loaded");
+    const show=()=>imgEl.classList.add("loaded");
+    imgEl.addEventListener("load",show);
     imgEl.src=url;
+    if(imgEl.complete && imgEl.naturalWidth) show(); // 浏览器已缓存时 load 事件可能不触发
   }
   // 直达 Apple Music 专辑：与封面同一次 iTunes 请求取得 collectionViewUrl，事后把详情页的
   // Apple Music 按钮从「搜索页」改写为「直达该专辑」（progressive，取不到则保持搜索兜底）
@@ -677,7 +679,7 @@
       case "search":{const m=/q=([^&]*)/.exec(query||"");html=allPage(m?decodeURIComponent(m[1]):"");break;}
       default: html=notFound();
     }
-    }catch(err){ html=notFound(); }
+    }catch(err){ console.error("router error:",err); html=notFound(); }
     app.innerHTML=html;
     window.scrollTo({top:0,behavior:"instant"});
     hydrateCovers();

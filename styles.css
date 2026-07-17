@@ -210,6 +210,22 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .lbtn.is-direct::after{content:"直达";flex:0 0 auto;margin-left:auto;font-size:.6rem;letter-spacing:.05em;
   color:var(--gold);border:1px solid var(--gold);border-radius:5px;padding:.05rem .3rem;line-height:1.4}
 .lbtn.is-direct:hover::after{color:#fff;border-color:rgba(255,255,255,.7)}
+/* ---------- 页内 30 秒试听播放器 ---------- */
+.player{margin:1.8rem 0 0}
+.player[data-player]:empty{display:none}
+.pl-head{font-family:var(--label);letter-spacing:.1em;font-size:.84rem;color:var(--gold-soft);margin-bottom:.7rem;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.pl-head small{color:var(--ink-mute);letter-spacing:.04em;font-size:.68rem;text-transform:none}
+.pl-list{list-style:none;margin:0;padding:0;display:grid;gap:.3rem}
+.pl-track{display:flex;align-items:center;gap:.7rem;padding:.5rem .7rem;border-radius:10px;border:1px solid var(--line);
+  background:rgba(255,255,255,.02);cursor:pointer;transition:border-color .18s ease,background .18s ease}
+.pl-track:hover{border-color:var(--gold);background:rgba(216,164,74,.06)}
+.pl-track.playing{border-color:var(--gold);background:rgba(216,164,74,.1)}
+.pl-btn{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:1px solid var(--gold);background:transparent;
+  color:var(--gold);font-size:.78rem;cursor:pointer;display:grid;place-items:center;transition:background .18s ease,color .18s ease}
+.pl-track:hover .pl-btn,.pl-track.playing .pl-btn{background:var(--gold);color:var(--bg)}
+.pl-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-size:.95rem}
+.pl-track.playing .pl-name{color:var(--gold-soft)}
+.pl-dur{flex:0 0 auto;font-family:var(--label);font-size:.75rem;color:var(--ink-mute);letter-spacing:.03em}
 
 /* ---------- detail page ---------- */
 .detail{display:grid;grid-template-columns:340px 1fr;gap:2.5rem;align-items:start}

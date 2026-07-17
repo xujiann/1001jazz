@@ -109,12 +109,12 @@
     });
   }
   function loadCover(album,imgEl){
-    if(album.id in coverCache){ applyCover(imgEl,coverCache[album.id]); applyAppleLink(album.id,appLinkCache[album.id]); applySmartLink(album.id,smartCache[album.id]); return; }
+    if(album.id in coverCache){ applyCover(imgEl,coverCache[album.id]); applyAppleLink(album.id,appLinkCache[album.id]); applySmartLink(album.id,smartCache[album.id]); applyPlayer(album.id,smartCache[album.id]); return; }
     const key="cov3:"+album.id, cached=lsGet(key);
     if(cached){ coverCache[album.id]=cached;
       const al=lsGet("alk:"+album.id)||""; appLinkCache[album.id]=al;
       const cid=lsGet("sl:"+album.id)||""; smartCache[album.id]=cid;
-      applyCover(imgEl,cached); applyAppleLink(album.id,al); applySmartLink(album.id,cid); return; }
+      applyCover(imgEl,cached); applyAppleLink(album.id,al); applySmartLink(album.id,cid); applyPlayer(album.id,cid); return; }
     const cbName="__jzcb"+(jsonpSeq++);
     const term=enc(albumQuery(album));
     const sc=document.createElement("script");
@@ -123,13 +123,70 @@
       coverCache[album.id]=url; if(url) lsSet(key,url);
       appLinkCache[album.id]=link||""; if(link) lsSet("alk:"+album.id,link);
       smartCache[album.id]=cid||""; if(cid) lsSet("sl:"+album.id,cid);
-      applyCover(imgEl,url); applyAppleLink(album.id,link||""); applySmartLink(album.id,cid||""); };
+      applyCover(imgEl,url); applyAppleLink(album.id,link||""); applySmartLink(album.id,cid||""); applyPlayer(album.id,cid||""); };
     window[cbName]=data=>{ const b=pickBest(album,data); finish(artOf(b),appleLinkOf(b),collectionIdOf(b)); };
     sc.onerror=()=>finish("");
     sc.src=`https://itunes.apple.com/search?term=${term}&entity=album&limit=8&callback=${cbName}`;
     document.body.appendChild(sc);
     setTimeout(()=>finish(""),9000);
   }
+  /* ---------- 页内 30 秒试听：Apple/iTunes 预览流 + HTML5 audio（不托管音频，仅热链公开预览） ---------- */
+  const trackCache = {};   // collectionId -> tracks[]（仅成功时缓存，供同 id 复用）
+  let audioEl=null, curTrack=null;
+  function fmtDur(ms){ const s=Math.round((ms||0)/1000); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+  function markPlaying(el,on){ if(!el) return; el.classList.toggle("playing",on);
+    const b=el.querySelector(".pl-btn"); if(b){ b.textContent=on?"⏸":"▶"; b.setAttribute("aria-label",(on?"暂停 ":"试听 ")+(el.getAttribute("data-name")||"")); } }
+  function ensureAudio(){
+    if(audioEl) return audioEl;
+    audioEl=document.createElement("audio"); audioEl.preload="none";
+    audioEl.addEventListener("ended",()=>{ if(!curTrack) return; markPlaying(curTrack,false);
+      const nx=curTrack.nextElementSibling; if(nx && nx.classList.contains("pl-track")) playTrack(nx); else curTrack=null; });
+    document.body.appendChild(audioEl);
+    return audioEl;
+  }
+  function playTrack(el){
+    const url=el.getAttribute("data-preview"); if(!url) return;
+    const a=ensureAudio();
+    if(curTrack===el){ if(a.paused){ a.play().catch(()=>{}); markPlaying(el,true); } else { a.pause(); markPlaying(el,false); } return; }
+    if(curTrack) markPlaying(curTrack,false);
+    curTrack=el; a.src=url; try{a.currentTime=0;}catch(e){} a.play().catch(()=>{}); markPlaying(el,true);
+  }
+  function stopPreview(){ if(audioEl) audioEl.pause(); if(curTrack){ markPlaying(curTrack,false); curTrack=null; } }
+  // 事件委托：点任意曲目行或其按钮即播放/暂停
+  document.addEventListener("click",ev=>{
+    const t=ev.target.closest && ev.target.closest(".pl-track");
+    if(t){ ev.preventDefault(); playTrack(t); }
+  });
+  function loadTracks(cid,cb){
+    if(trackCache[cid]){ cb(trackCache[cid]); return; }
+    const cbName="__jztr"+(jsonpSeq++);
+    const sc=document.createElement("script"); let done=false;
+    const finish=tracks=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove(); if(tracks) trackCache[cid]=tracks; cb(tracks); };
+    window[cbName]=data=>{ let tracks=null; try{
+      tracks=(data.results||[]).filter(r=>r.wrapperType==="track"&&r.previewUrl)
+        .map(r=>({name:r.trackName,preview:r.previewUrl,ms:r.trackTimeMillis||0})); }catch(e){}
+      finish(tracks&&tracks.length?tracks:null); };
+    sc.onerror=()=>finish(null);
+    sc.src=`https://itunes.apple.com/lookup?id=${enc(cid)}&entity=song&limit=60&callback=${cbName}`;
+    document.body.appendChild(sc);
+    setTimeout(()=>finish(null),9000);
+  }
+  function renderPlayer(albumId,tracks){
+    const box=document.querySelector('.player[data-player="'+albumId+'"]');
+    if(!box || box.dataset.filled || !tracks || !tracks.length) return;
+    box.dataset.filled="1";
+    const items=tracks.map(t=>`<li class="pl-track" data-preview="${esc(t.preview)}" data-name="${esc(t.name)}">
+      <button class="pl-btn" aria-label="试听 ${esc(t.name)}">▶</button>
+      <span class="pl-name">${esc(t.name)}</span><span class="pl-dur">${t.ms?fmtDur(t.ms):""}</span></li>`).join("");
+    box.innerHTML=`<div class="pl-head">▶ 页内试听 · 每首 30 秒<small>预览来自 Apple / iTunes</small></div><ol class="pl-list">${items}</ol>`;
+  }
+  function applyPlayer(albumId,cid){
+    if(!cid) return;
+    const box=document.querySelector('.player[data-player="'+albumId+'"]');
+    if(!box || box.dataset.filled) return;
+    loadTracks(cid,tracks=>renderPlayer(albumId,tracks));
+  }
+
   // 懒加载：仅在封面进入视口附近时才请求 iTunes，避免一次性发出上千请求
   let coverObserver=null;
   function ensureObserver(){
@@ -577,7 +634,7 @@
           <div class="listen-label">在平台收听 · Listen on</div>
           <div class="listen-grid">${links}</div>
         </div>
-        <p class="muted" style="font-size:.74rem;margin-top:.6rem">Apple Music 尽量<strong>直达该专辑</strong>，其余平台跳转搜索页；本站不托管音频，封面来自 iTunes（失败时回退为程序化视觉）。</p>
+        <p class="muted" style="font-size:.74rem;margin-top:.6rem">Apple Music 尽量<strong>直达该专辑</strong>，其余平台跳转搜索页；下方 30 秒试听为 Apple 官方预览流（热链、不托管、不缓存）。本站不托管音频，封面来自 iTunes（失败时回退为程序化视觉）。</p>
       </div>
       <div>
         <div class="d-album-kicker">${esc(a.label)} · ${a.year}</div>
@@ -595,6 +652,7 @@
         <div class="reason"><h4>导读 · 为什么值得听</h4>${esc(a.reason)}</div>
       </div>
     </div>
+    <div class="player" data-player="${a.id}"></div>
     <div class="related section">
       <h4>延伸聆听 · 同年代 / 同艺术家 / 同流派</h4>
       <div class="grid cols">${related.map(albumCard).join("")}</div>
@@ -637,7 +695,7 @@
 
       <section class="about-sec legal">
         <h2>合法性原则</h2>
-        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮跳转到网易云 / QQ音乐 / Spotify / Apple Music / YouTube / Bandcamp / 豆瓣，由各平台合法播放——其中 Apple Music 借 iTunes 公共接口尽量直达该专辑页，其余为平台搜索页。详情页顶部的「多平台直达」按钮借第三方链接服务 <a href="https://odesli.co" target="_blank" rel="noopener">album.link（Odesli）</a> 用苹果专辑 id 解析到含 Apple / Tidal / Deezer / Amazon 等多平台的该专辑落地页（不含国内平台，网易云 / QQ 请用下方按钮）。专辑封面取自 iTunes 公共接口，艺术家肖像取自<strong>维基百科 / 维基共享资源（Wikimedia Commons）</strong>公共接口——二者均由客户端按需请求、本地 localStorage 缓存，加载失败时回退为程序化视觉占位或字母徽章。全部文字导读与小传为入门向介绍，仅供学习交流。</p>
+        <p>本站<strong>不上传、不缓存、不下载、不托管任何音乐文件</strong>。"试听"按钮跳转到网易云 / QQ音乐 / Spotify / Apple Music / YouTube / Bandcamp / 豆瓣，由各平台合法播放——其中 Apple Music 借 iTunes 公共接口尽量直达该专辑页，其余为平台搜索页。专辑详情页的<strong>「页内 30 秒试听」</strong>播放的是 Apple / iTunes 官方提供的 30 秒预览流（用 HTML5 播放器热链、既不下载也不缓存），仅供试听发现。详情页顶部的「多平台直达」按钮借第三方链接服务 <a href="https://odesli.co" target="_blank" rel="noopener">album.link（Odesli）</a> 用苹果专辑 id 解析到含 Apple / Tidal / Deezer / Amazon 等多平台的该专辑落地页（不含国内平台，网易云 / QQ 请用下方按钮）。专辑封面取自 iTunes 公共接口，艺术家肖像取自<strong>维基百科 / 维基共享资源（Wikimedia Commons）</strong>公共接口——二者均由客户端按需请求、本地 localStorage 缓存，加载失败时回退为程序化视觉占位或字母徽章。全部文字导读与小传为入门向介绍，仅供学习交流。</p>
       </section>
 
       <section class="about-sec">
@@ -656,6 +714,7 @@
 
   /* ---------- 路由 ---------- */
   function router(){
+    stopPreview();   // 离开专辑页时停止试听
     let html;
     try{
     const h=location.hash.replace(/^#\/?/,"");

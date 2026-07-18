@@ -146,6 +146,7 @@
   }
   function playTrack(el){
     const url=el.getAttribute("data-preview"); if(!url) return;
+    if(radioOn) stopRadio();   // 详情页手动试听时停掉电台，避免两路同时出声
     const a=ensureAudio();
     if(curTrack===el){ if(a.paused){ a.play().catch(()=>{}); markPlaying(el,true); } else { a.pause(); markPlaying(el,false); } return; }
     if(curTrack) markPlaying(curTrack,false);
@@ -186,6 +187,76 @@
     if(!box || box.dataset.filled) return;
     loadTracks(cid,tracks=>renderPlayer(albumId,tracks));
   }
+
+  /* ---------- 随机试听电台：跨专辑连播 30 秒预览，常驻迷你播放器（导航不中断） ---------- */
+  let radioAudio=null, radioQueue=[], radioIdx=-1, radioOn=false, radioAlbum=null, radioBar=null, radioSkips=0;
+  function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t; } return a; }
+  const shortTitle=a=>a.title.replace(/^[^:]+:\s*/,"")+" · "+a.artist;
+  // 取专辑的苹果 collectionId：缓存命中或即时 iTunes 搜索
+  function resolveCollectionId(album,cb){
+    if(album.id in smartCache){ cb(smartCache[album.id]); return; }
+    const ls=lsGet("sl:"+album.id);
+    if(ls){ smartCache[album.id]=ls; cb(ls); return; }
+    const cbName="__jzci"+(jsonpSeq++), sc=document.createElement("script"); let done=false;
+    const finish=cid=>{ if(done)return; done=true; try{delete window[cbName];}catch(e){} sc.remove();
+      smartCache[album.id]=cid||""; if(cid) lsSet("sl:"+album.id,cid); cb(cid||""); };
+    window[cbName]=data=>finish(collectionIdOf(pickBest(album,data)));
+    sc.onerror=()=>finish("");
+    sc.src=`https://itunes.apple.com/search?term=${enc(albumQuery(album))}&entity=album&limit=8&callback=${cbName}`;
+    document.body.appendChild(sc);
+    setTimeout(()=>finish(""),9000);
+  }
+  function updateRadioToggle(){ if(radioBar&&radioAudio) radioBar.querySelector(".rb-toggle").textContent=radioAudio.paused?"▶":"⏸"; }
+  function ensureRadioAudio(){ if(radioAudio) return radioAudio;
+    radioAudio=document.createElement("audio"); radioAudio.preload="none";
+    radioAudio.addEventListener("ended",()=>{ radioSkips=0; radioNext(); });
+    radioAudio.addEventListener("play",updateRadioToggle); radioAudio.addEventListener("pause",updateRadioToggle);
+    document.body.appendChild(radioAudio); return radioAudio; }
+  function ensureRadioBar(){ if(radioBar) return radioBar;
+    radioBar=document.createElement("div"); radioBar.className="radio-bar"; radioBar.hidden=true;
+    radioBar.innerHTML='<button class="rb-toggle" aria-label="播放/暂停">⏸</button>'+
+      '<div class="rb-info"><div class="rb-track">试听电台</div><div class="rb-sub"></div></div>'+
+      '<button class="rb-next" aria-label="下一首">⏭</button><button class="rb-close" aria-label="关闭电台">✕</button>';
+    radioBar.querySelector(".rb-toggle").addEventListener("click",radioToggle);
+    radioBar.querySelector(".rb-next").addEventListener("click",()=>{ radioSkips=0; radioNext(); });
+    radioBar.querySelector(".rb-close").addEventListener("click",stopRadio);
+    radioBar.querySelector(".rb-info").addEventListener("click",()=>{ if(radioAlbum) location.hash="#/album/"+radioAlbum.id; });
+    document.body.appendChild(radioBar); return radioBar; }
+  function updateRadioBar(track,sub){ const b=ensureRadioBar(); b.querySelector(".rb-track").textContent=track; b.querySelector(".rb-sub").textContent=sub||""; }
+  function startRadio(albums){
+    stopPreview();
+    radioQueue=shuffle((albums&&albums.length)?albums:ALBUMS); radioIdx=-1; radioOn=true; radioSkips=0;
+    ensureRadioBar().hidden=false; updateRadioBar("解析中…","随机试听电台"); radioNext();
+  }
+  function radioNext(){
+    if(!radioOn) return;
+    if(radioSkips>60){ updateRadioBar("暂无可试听曲目","稍后再试"); return; }
+    radioIdx++; if(radioIdx>=radioQueue.length){ radioIdx=0; radioQueue=shuffle(radioQueue); }
+    const album=radioQueue[radioIdx]; radioAlbum=album;
+    updateRadioBar("解析中…",shortTitle(album));
+    resolveCollectionId(album,cid=>{
+      if(!radioOn||radioAlbum!==album) return;
+      if(!cid){ radioSkips++; radioNext(); return; }
+      loadTracks(cid,tracks=>{
+        if(!radioOn||radioAlbum!==album) return;
+        if(!tracks||!tracks.length){ radioSkips++; radioNext(); return; }
+        radioSkips=0; const t=tracks[0], a=ensureRadioAudio();
+        a.src=t.preview; try{a.currentTime=0;}catch(e){} a.play().catch(()=>{});
+        updateRadioBar(t.name,shortTitle(album));
+      });
+    });
+  }
+  function radioToggle(){ if(!radioOn) return; const a=ensureRadioAudio(); if(a.paused) a.play().catch(()=>{}); else a.pause(); }
+  function stopRadio(){ radioOn=false; if(radioAudio) radioAudio.pause(); if(radioBar) radioBar.hidden=true; }
+  // 入口：[data-radio]（全局 / 年代 era:key / 心情 mood:名）
+  document.addEventListener("click",ev=>{
+    const el=ev.target.closest && ev.target.closest("[data-radio]"); if(!el) return;
+    ev.preventDefault();
+    const spec=el.getAttribute("data-radio"); let albums=ALBUMS;
+    if(spec.indexOf("era:")===0) albums=ALBUMS.filter(a=>a.era===spec.slice(4));
+    else if(spec.indexOf("mood:")===0) albums=ALBUMS.filter(a=>a.moods.includes(spec.slice(5)));
+    startRadio(albums);
+  });
 
   // 懒加载：仅在封面进入视口附近时才请求 iTunes，避免一次性发出上千请求
   let coverObserver=null;
@@ -418,6 +489,7 @@
         <div class="stat"><b>${window.MOODS.length}</b><span>心情入口</span></div>
         <div class="stat"><b>${window.INSTRUMENTS.length}</b><span>乐器入口</span></div>
       </div>
+      <button class="radio-start" data-radio="all">🎙 随机试听电台 · 边逛边听</button>
     </section>
 
     <section class="section">
@@ -469,7 +541,8 @@
     const list=ALBUMS.filter(a=>a.era===key);
     return `${crumb()}
       <div class="era-hero"><div class="yr">${e.years} · ${esc(e.keywords)}</div>
-        <h1>${esc(e.name)}</h1><p>${esc(e.desc)}</p></div>
+        <h1>${esc(e.name)}</h1><p>${esc(e.desc)}</p>
+        <button class="radio-start sm" data-radio="era:${key}">🎙 本时期电台</button></div>
       <div class="section-head"><h2>本时期专辑</h2><span class="tag">${list.length} albums</span></div>
       ${grid(list)}`;
   }
@@ -587,7 +660,8 @@
   }
   function moodPage(m){
     const list=ALBUMS.filter(a=>a.moods.includes(m));
-    return `${crumb()}<div class="section-head"><h2>心情 · ${esc(m)}</h2><span class="tag">${list.length} albums</span></div>${grid(list)}`;
+    return `${crumb()}<div class="section-head"><h2>心情 · ${esc(m)}</h2><span class="tag">${list.length} albums</span>
+      <button class="radio-start sm" data-radio="mood:${esc(m)}">🎙 此心情电台</button></div>${grid(list)}`;
   }
   function instrumentsPage(){
     const tiles=window.INSTRUMENTS.map(i=>{

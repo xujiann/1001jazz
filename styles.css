@@ -226,6 +226,25 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .pl-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-size:.95rem}
 .pl-track.playing .pl-name{color:var(--gold-soft)}
 .pl-dur{flex:0 0 auto;font-family:var(--label);font-size:.75rem;color:var(--ink-mute);letter-spacing:.03em}
+/* ---------- 随机试听电台：入口按钮 + 常驻迷你播放器 ---------- */
+.radio-start{display:inline-flex;align-items:center;gap:.5rem;margin-top:1.6rem;padding:.6rem 1.3rem;border-radius:999px;
+  border:1px solid var(--gold);background:rgba(216,164,74,.08);color:var(--gold-soft);
+  font-family:var(--label);font-size:.95rem;letter-spacing:.03em;cursor:pointer;transition:transform .2s ease,background .2s ease,color .2s ease,box-shadow .2s ease}
+.radio-start:hover{background:var(--gold);color:var(--bg);transform:translateY(-2px);box-shadow:0 8px 22px -12px var(--gold)}
+.radio-start.sm{margin-top:.9rem;padding:.4rem .95rem;font-size:.82rem}
+.radio-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:1rem;z-index:80;
+  display:flex;align-items:center;gap:.6rem;width:min(560px,calc(100vw - 1.6rem));
+  padding:.55rem .7rem;border-radius:14px;border:1px solid var(--gold);
+  background:rgba(20,16,12,.93);backdrop-filter:blur(14px);box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.radio-bar[hidden]{display:none}
+.radio-bar button{flex:0 0 auto;border:none;background:transparent;color:var(--gold);cursor:pointer;
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:1rem;transition:background .18s ease}
+.radio-bar button:hover{background:rgba(216,164,74,.18)}
+.rb-toggle{border:1px solid var(--gold)!important}
+.rb-info{flex:1 1 auto;min-width:0;cursor:pointer;line-height:1.2}
+.rb-track{font-family:var(--serif);font-size:.95rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rb-sub{font-family:var(--label);font-size:.72rem;color:var(--ink-mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em}
+.rb-close{font-size:.85rem!important;color:var(--ink-mute)!important}
 
 /* ---------- detail page ---------- */
 .detail{display:grid;grid-template-columns:340px 1fr;gap:2.5rem;align-items:start}

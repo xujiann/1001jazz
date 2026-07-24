@@ -226,7 +226,8 @@
   function startRadio(albums){
     stopPreview();
     radioQueue=shuffle((albums&&albums.length)?albums:ALBUMS); radioIdx=-1; radioOn=true; radioSkips=0;
-    ensureRadioBar().hidden=false; updateRadioBar("解析中…","随机试听电台"); radioNext();
+    ensureRadioBar().hidden=false; document.body.classList.add("radio-on");
+    updateRadioBar("解析中…","随机试听电台"); radioNext();
   }
   function radioNext(){
     if(!radioOn) return;
@@ -243,11 +244,18 @@
         radioSkips=0; const t=tracks[0], a=ensureRadioAudio();
         a.src=t.preview; try{a.currentTime=0;}catch(e){} a.play().catch(()=>{});
         updateRadioBar(t.name,shortTitle(album));
+        prefetchNext();   // 预取下一张的 id+曲目，切歌无缝
       });
     });
   }
+  // 后台预热下一张，使 ended→下一首几乎无间隙（命中缓存则瞬间播放）
+  function prefetchNext(){
+    if(!radioOn || !radioQueue.length) return;
+    const nA=radioQueue[(radioIdx+1)%radioQueue.length]; if(!nA) return;
+    resolveCollectionId(nA,cid=>{ if(cid) loadTracks(cid,()=>{}); });
+  }
   function radioToggle(){ if(!radioOn) return; const a=ensureRadioAudio(); if(a.paused) a.play().catch(()=>{}); else a.pause(); }
-  function stopRadio(){ radioOn=false; if(radioAudio) radioAudio.pause(); if(radioBar) radioBar.hidden=true; }
+  function stopRadio(){ radioOn=false; if(radioAudio) radioAudio.pause(); if(radioBar) radioBar.hidden=true; document.body.classList.remove("radio-on"); }
   // 入口：[data-radio]（全局 / 年代 era:key / 心情 mood:名）
   document.addEventListener("click",ev=>{
     const el=ev.target.closest && ev.target.closest("[data-radio]"); if(!el) return;

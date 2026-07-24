@@ -245,6 +245,7 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .rb-track{font-family:var(--serif);font-size:.95rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rb-sub{font-family:var(--label);font-size:.72rem;color:var(--ink-mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em}
 .rb-close{font-size:.85rem!important;color:var(--ink-mute)!important}
+body.radio-on{padding-bottom:4.8rem}   /* 常驻电台条不遮住页尾内容 */
 
 /* ---------- detail page ---------- */
 .detail{display:grid;grid-template-columns:340px 1fr;gap:2.5rem;align-items:start}

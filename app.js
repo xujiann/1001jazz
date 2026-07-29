@@ -109,12 +109,12 @@
     });
   }
   function loadCover(album,imgEl){
-    if(album.id in coverCache){ applyCover(imgEl,coverCache[album.id]); applyAppleLink(album.id,appLinkCache[album.id]); applySmartLink(album.id,smartCache[album.id]); applyPlayer(album.id,smartCache[album.id]); return; }
+    if(album.id in coverCache){ applyCover(imgEl,coverCache[album.id]); applyAppleLink(album.id,appLinkCache[album.id]); applySmartLink(album.id,smartCache[album.id]); applyPlayer(album.id,smartCache[album.id]); applyEmbed(album.id,smartCache[album.id]); return; }
     const key="cov3:"+album.id, cached=lsGet(key);
     if(cached){ coverCache[album.id]=cached;
       const al=lsGet("alk:"+album.id)||""; appLinkCache[album.id]=al;
       const cid=lsGet("sl:"+album.id)||""; smartCache[album.id]=cid;
-      applyCover(imgEl,cached); applyAppleLink(album.id,al); applySmartLink(album.id,cid); applyPlayer(album.id,cid); return; }
+      applyCover(imgEl,cached); applyAppleLink(album.id,al); applySmartLink(album.id,cid); applyPlayer(album.id,cid); applyEmbed(album.id,cid); return; }
     const cbName="__jzcb"+(jsonpSeq++);
     const term=enc(albumQuery(album));
     const sc=document.createElement("script");
@@ -123,7 +123,7 @@
       coverCache[album.id]=url; if(url) lsSet(key,url);
       appLinkCache[album.id]=link||""; if(link) lsSet("alk:"+album.id,link);
       smartCache[album.id]=cid||""; if(cid) lsSet("sl:"+album.id,cid);
-      applyCover(imgEl,url); applyAppleLink(album.id,link||""); applySmartLink(album.id,cid||""); applyPlayer(album.id,cid||""); };
+      applyCover(imgEl,url); applyAppleLink(album.id,link||""); applySmartLink(album.id,cid||""); applyPlayer(album.id,cid||""); applyEmbed(album.id,cid||""); };
     window[cbName]=data=>{ const b=pickBest(album,data); finish(artOf(b),appleLinkOf(b),collectionIdOf(b)); };
     sc.onerror=()=>finish("");
     sc.src=`https://itunes.apple.com/search?term=${term}&entity=album&limit=8&callback=${cbName}`;
@@ -655,7 +655,15 @@
           <div class="grid cols">${g.items.map(albumCard).join("")}</div>
         </div>`).join("")
       : grid(list);
-    return `${crumb()}${artistHero(a)}${head}${body}`;
+    // 关系网：同台合作 + 相近艺术家（可点击遍历）
+    const conn=artistConnections(a);
+    const chip=n=>`<a class="conn-chip" href="#/artist/${enc(n)}">${esc((BIOS[n]&&BIOS[n].zh)||n)}</a>`;
+    const connHTML=conn&&(conn.collab.length||conn.peers.length)?`<div class="conn section">
+      <h4>关系网 · Connections</h4>
+      ${conn.collab.length?`<div class="conn-row"><span class="conn-k">同台合作</span><div class="conn-chips">${conn.collab.map(chip).join("")}</div></div>`:""}
+      ${conn.peers.length?`<div class="conn-row"><span class="conn-k">相近艺术家</span><div class="conn-chips">${conn.peers.map(chip).join("")}</div></div>`:""}
+    </div>`:"";
+    return `${crumb()}${artistHero(a)}${head}${body}${connHTML}`;
   }
 
   /* ---------- 心情 / 乐器 ---------- */
@@ -713,6 +721,7 @@
       <div>${coverHTML(a,true)}
         <div class="listen">
           <a class="smartlink" data-smartlink="${a.id}" href="#" target="_blank" rel="noopener" hidden><span class="sl-ico">▶</span><span class="sl-txt">打开专辑 · 多平台直达<small>Apple · Tidal · Deezer · Amazon · Spotify…</small></span></a>
+          <button class="am-open" data-embed="${a.id}" hidden>🍎 在 Apple Music 内嵌播放<small>订阅可听整轨，否则 30 秒预览</small></button>
           <div class="listen-label">在平台收听 · Listen on</div>
           <div class="listen-grid">${links}</div>
         </div>
@@ -720,7 +729,7 @@
       </div>
       <div>
         <div class="d-album-kicker">${esc(a.label)} · ${a.year}</div>
-        <h1>${esc(a.title.replace(/^[^:]+:\s*/,""))}</h1>
+        <div class="d-title-row"><h1>${esc(a.title.replace(/^[^:]+:\s*/,""))}</h1>${favBtn(a.id)}</div>
         <div class="d-artist"><a href="#/artist/${enc(a.artist)}">${esc(a.artist)}</a>${(BIOS[a.artist]&&BIOS[a.artist].zh)?`<span class="d-artist-zh">${esc(BIOS[a.artist].zh)}</span>`:""}</div>
         <div class="tags">${tagLinks(a.genres,"genre")}</div>
         <dl class="facts">
@@ -782,7 +791,7 @@
 
       <section class="about-sec">
         <h2>技术栈</h2>
-        <p>纯静态单页网站，零构建、零后端、零第三方依赖：<code>index.html</code> 负责骨架与导航，<code>styles.css</code> 是暗色复古爵士视觉，<code>app.js</code> 实现 hash 路由、渲染、搜索与懒加载，<code>data.js</code> 存放 1001 张专辑数据，<code>artists.js</code> 存放艺术家小传（<code>window.ARTIST_BIOS</code>）。专辑封面来自 iTunes Search API、艺术家肖像来自 Wikipedia pageimages，均用 IntersectionObserver 视口内才请求、并本地 localStorage 缓存；索引页的肖像还会合并成批量请求以减少往返。可一键部署到 GitHub Pages / Vercel / Cloudflare Pages。</p>
+        <p>纯静态单页网站，零构建、零后端、零第三方依赖：<code>index.html</code> 负责骨架与导航，<code>styles.css</code> 是暗色复古爵士视觉，<code>app.js</code> 实现 hash 路由、渲染、搜索与懒加载，<code>data.js</code> 存放 1001 张专辑数据，<code>artists.js</code> 存放艺术家小传（<code>window.ARTIST_BIOS</code>），<code>paths.js</code> 存放引导聆听路线。人物页的「关系网」由合作署名与厂牌/时期/流派就近关系即时计算；「收藏」用 localStorage 存在本机；Apple Music 整轨嵌入用 iTunes 的 collectionId 按需注入官方播放器。专辑封面来自 iTunes Search API、艺术家肖像来自 Wikipedia pageimages，均用 IntersectionObserver 视口内才请求、并本地 localStorage 缓存；索引页的肖像还会合并成批量请求以减少往返。可一键部署到 GitHub Pages / Vercel / Cloudflare Pages。</p>
       </section>
 
       <section class="about-sec dev">
@@ -793,6 +802,92 @@
   }
 
   function notFound(){return `${crumb()}<p class="empty">没有找到这个页面。</p>`;}
+
+  /* ---------- 关系网：从数据派生艺术家连接 ---------- */
+  const artistLinks = (()=>{
+    const m={}, keys=new Set(ALBUMS.map(a=>a.artist));
+    const add=(a,b)=>{ if(a!==b)(m[a]||(m[a]=new Set())).add(b); };
+    ALBUMS.forEach(al=>{
+      const parts=al.artist.split(/\s*(?:&|\/|\bwith\b|\bmeets\b)\s*/i).map(s=>s.trim()).filter(x=>keys.has(x));
+      parts.forEach(x=>parts.forEach(y=>add(x,y)));
+    });
+    return m;
+  })();
+  function artistConnections(name){
+    const own=ALBUMS.filter(a=>a.artist===name); if(!own.length) return null;
+    const collab=[...(artistLinks[name]||[])];
+    const labelCnt={}, eraCnt={}; own.forEach(a=>{ labelCnt[a.label]=(labelCnt[a.label]||0)+1; eraCnt[a.era]=(eraCnt[a.era]||0)+1; });
+    const topLabel=Object.entries(labelCnt).sort((x,y)=>y[1]-x[1])[0][0];
+    const topEra=Object.entries(eraCnt).sort((x,y)=>y[1]-x[1])[0][0];
+    const genres=new Set(own.flatMap(a=>a.genres)), collabSet=new Set(collab), score={};
+    ALBUMS.forEach(a=>{ if(a.artist===name||collabSet.has(a.artist)) return;
+      let s=0; if(a.label===topLabel)s++; if(a.era===topEra)s++; if(a.genres.some(g=>genres.has(g)))s++;
+      if(s) score[a.artist]=Math.max(score[a.artist]||0,s); });
+    const peers=Object.entries(score).sort((x,y)=>y[1]-x[1]).map(x=>x[0]).slice(0,12);
+    return { collab, peers, label:topLabel };
+  }
+
+  /* ---------- 收藏（localStorage，纯本机） ---------- */
+  let favCache=null;
+  function favArr(){ if(favCache) return favCache; try{ favCache=new Set(JSON.parse(lsGet("faves")||"[]")); }catch(e){ favCache=new Set(); } return favCache; }
+  function isFav(id){ return favArr().has(id); }
+  function toggleFav(id){ const s=favArr(),on=!s.has(id); if(on)s.add(id); else s.delete(id); lsSet("faves",JSON.stringify([...s])); return on; }
+  function favBtn(id){ const on=isFav(id); return `<button class="fav-btn${on?" on":""}" data-fav="${id}" aria-label="收藏本专辑" aria-pressed="${on}" title="收藏（保存在本机）">♥</button>`; }
+  function favesPage(){
+    const list=[...favArr()].map(id=>albumById.get(id)).filter(Boolean);
+    const head=`<div class="section-head"><h2>我的收藏</h2><span class="tag">${list.length} 张</span></div>`;
+    if(!list.length) return `${crumb()}${head}<p class="empty">还没有收藏。在任意专辑上点 ♥ 即可，收藏只保存在本机浏览器。</p>`;
+    return `${crumb()}${head}${grid(list)}`;
+  }
+  document.addEventListener("click",ev=>{
+    const b=ev.target.closest && ev.target.closest("[data-fav]"); if(!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const on=toggleFav(b.getAttribute("data-fav"));
+    b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
+    if(location.hash.indexOf("#/faves")===0 && !on){ const c=b.closest(".song-card"); if(c) c.remove(); }
+  });
+
+  /* ---------- 引导聆听路线 ---------- */
+  function pathsPage(){
+    const P=window.PATHS||[];
+    const cards=P.map(p=>`<div class="tile path-tile" onclick="location.hash='#/path/${p.key}'">
+      <div class="t-k">PATH · ${p.stops.length} 张</div><h3>${esc(p.title)}</h3>
+      <div class="path-sub">${esc(p.sub)}</div><p>${esc(p.intro.slice(0,52))}…</p></div>`).join("");
+    return `${crumb()}<div class="section-head"><h2>引导聆听路线</h2><span class="tag">${P.length} 条 · 策展导览</span></div>
+      <p class="paths-lead">不知道从哪听起？选一条路线跟着走——每张专辑配一句「为什么听、为什么在这」，可直接页内试听。</p>
+      <div class="tile-grid">${cards}</div>`;
+  }
+  function pathPage(key){
+    const p=(window.PATHS||[]).find(x=>x.key===key); if(!p) return notFound();
+    const stops=p.stops.map((s,i)=>{ const a=albumById.get(s.id); if(!a) return "";
+      return `<div class="path-stop">
+        <div class="ps-num">${i+1}</div>
+        <article class="ps-cover" onclick="location.hash='#/album/${a.id}'">${coverHTML(a,false,true)}</article>
+        <div class="ps-body">
+          <div class="ps-title" onclick="location.hash='#/album/${a.id}'">${esc(a.title.replace(/^[^:]+:\s*/,""))}</div>
+          <div class="ps-artist">${esc(a.artist)} · ${a.year} · ${esc(a.label)}</div>
+          <p class="ps-note">${esc(s.note)}</p>
+        </div>${favBtn(a.id)}</div>`; }).join("");
+    return `${crumb()}
+      <div class="path-hero"><div class="kicker">聆听路线 · ${p.stops.length} 张</div>
+        <h1>${esc(p.title)}</h1><div class="path-sub">${esc(p.sub)}</div><p>${esc(p.intro)}</p></div>
+      <div class="path-stops">${stops}</div>`;
+  }
+
+  /* ---------- Apple Music 整轨嵌入（用 collectionId，按需注入 iframe） ---------- */
+  function applyEmbed(albumId,cid){
+    if(!cid) return;
+    document.querySelectorAll('[data-embed="'+albumId+'"]').forEach(el=>{ el.setAttribute("data-cid",cid); el.hidden=false; });
+  }
+  document.addEventListener("click",ev=>{
+    const b=ev.target.closest && ev.target.closest(".am-open"); if(!b) return;
+    ev.preventDefault(); const cid=b.getAttribute("data-cid"); if(!cid) return;
+    const wrap=document.createElement("div"); wrap.className="am-frame";
+    wrap.innerHTML='<iframe allow="autoplay *; encrypted-media *;" frameborder="0" height="450" '+
+      'sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" '+
+      'src="https://embed.music.apple.com/us/album/'+encodeURIComponent(cid)+'"></iframe>';
+    b.replaceWith(wrap);
+  });
 
   /* ---------- 路由 ---------- */
   function router(){
@@ -816,6 +911,9 @@
       case "instrument": html=instrumentPage(parts[1]);break;
       case "album": case "song": html=albumPage(parts[1]);break;
       case "all": html=allPage(parts[1]);break;
+      case "paths": html=pathsPage();break;
+      case "path": html=pathPage(parts[1]);break;
+      case "faves": html=favesPage();break;
       case "about": html=aboutPage();break;
       case "search":{const m=/q=([^&]*)/.exec(query||"");html=allPage(m?decodeURIComponent(m[1]):"");break;}
       default: html=notFound();

@@ -223,9 +223,11 @@
     radioBar.querySelector(".rb-info").addEventListener("click",()=>{ if(radioAlbum) location.hash="#/album/"+radioAlbum.id; });
     document.body.appendChild(radioBar); return radioBar; }
   function updateRadioBar(track,sub){ const b=ensureRadioBar(); b.querySelector(".rb-track").textContent=track; b.querySelector(".rb-sub").textContent=sub||""; }
-  function startRadio(albums){
+  function startRadio(albums,ordered){
     stopPreview();
-    radioQueue=shuffle((albums&&albums.length)?albums:ALBUMS); radioIdx=-1; radioOn=true; radioSkips=0;
+    const pool=(albums&&albums.length)?albums:ALBUMS;
+    radioQueue = ordered ? pool.slice() : shuffle(pool);
+    radioIdx=-1; radioOn=true; radioSkips=0;
     ensureRadioBar().hidden=false; document.body.classList.add("radio-on");
     updateRadioBar("解析中…","随机试听电台"); radioNext();
   }
@@ -260,10 +262,13 @@
   document.addEventListener("click",ev=>{
     const el=ev.target.closest && ev.target.closest("[data-radio]"); if(!el) return;
     ev.preventDefault();
-    const spec=el.getAttribute("data-radio"); let albums=ALBUMS;
-    if(spec.indexOf("era:")===0) albums=ALBUMS.filter(a=>a.era===spec.slice(4));
+    const spec=el.getAttribute("data-radio"); let albums=ALBUMS, ordered=false;
+    if(spec.indexOf("path:")===0){ const p=(window.PATHS||[]).find(x=>x.key===spec.slice(5));
+      albums=p?p.stops.map(s=>albumById.get(s.id)).filter(Boolean):[]; ordered=true; }
+    else if(spec==="faves") albums=[...favArr()].map(id=>albumById.get(id)).filter(Boolean);
+    else if(spec.indexOf("era:")===0) albums=ALBUMS.filter(a=>a.era===spec.slice(4));
     else if(spec.indexOf("mood:")===0) albums=ALBUMS.filter(a=>a.moods.includes(spec.slice(5)));
-    startRadio(albums);
+    startRadio(albums,ordered);
   });
 
   // 懒加载：仅在封面进入视口附近时才请求 iTunes，避免一次性发出上千请求
@@ -519,6 +524,11 @@
     </section>
 
     ${featuredArtistsModule()}
+
+    <section class="section">
+      <div class="section-head"><h2>引导聆听路线</h2><span class="tag">不知从哪听起？跟着走</span></div>
+      <div class="tile-grid">${(window.PATHS||[]).map(p=>`<div class="tile path-tile" onclick="location.hash='#/path/${p.key}'"><div class="t-k">PATH · ${p.stops.length} 张</div><h3>${esc(p.title)}</h3><div class="path-sub">${esc(p.sub)}</div></div>`).join("")}</div>
+    </section>
 
     <section class="section">
       <div class="section-head"><h2>多种方式进入</h2><span class="tag">Browse</span></div>
@@ -837,7 +847,9 @@
     const list=[...favArr()].map(id=>albumById.get(id)).filter(Boolean);
     const head=`<div class="section-head"><h2>我的收藏</h2><span class="tag">${list.length} 张</span></div>`;
     if(!list.length) return `${crumb()}${head}<p class="empty">还没有收藏。在任意专辑上点 ♥ 即可，收藏只保存在本机浏览器。</p>`;
-    return `${crumb()}${head}${grid(list)}`;
+    return `${crumb()}${head}
+      <button class="radio-start sm" data-radio="faves">▶ 播放我的收藏 · 30 秒预览</button>
+      ${grid(list)}`;
   }
   document.addEventListener("click",ev=>{
     const b=ev.target.closest && ev.target.closest("[data-fav]"); if(!b) return;
@@ -870,7 +882,8 @@
         </div>${favBtn(a.id)}</div>`; }).join("");
     return `${crumb()}
       <div class="path-hero"><div class="kicker">聆听路线 · ${p.stops.length} 张</div>
-        <h1>${esc(p.title)}</h1><div class="path-sub">${esc(p.sub)}</div><p>${esc(p.intro)}</p></div>
+        <h1>${esc(p.title)}</h1><div class="path-sub">${esc(p.sub)}</div><p>${esc(p.intro)}</p>
+        <button class="radio-start" data-radio="path:${p.key}">▶ 按这条路线连播 · 30 秒预览</button></div>
       <div class="path-stops">${stops}</div>`;
   }
 

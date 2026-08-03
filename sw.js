@@ -1,7 +1,7 @@
 /* 1001 Jazz — service worker（网络优先，保证内容更新即时生效、离线可用）。
  * 只处理同源 GET；跨域封面(iTunes)/肖像(维基)交由浏览器直取（本站已用 localStorage 缓存其 URL）。
  * 更新 SHELL 版本号即可让旧缓存失效。 */
-const SHELL = "jazz-shell-v2";
+const SHELL = "jazz-shell-v3";
 const ASSETS = [
   "./", "./index.html", "./styles.css", "./app.js",
   "./data.js", "./artists.js", "./paths.js", "./favicon.svg", "./manifest.webmanifest"

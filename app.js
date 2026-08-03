@@ -415,6 +415,33 @@
       if(emptyEl) emptyEl.style.display=shown?"none":"";
     });
   }
+  // 结果内即时筛选 + 排序：show/hide 过滤、appendChild 重排（不重渲染，保留已加载封面与收藏态）
+  function hydrateGridTools(){
+    document.querySelectorAll(".grid-wrap").forEach(wrap=>{
+      const inp=wrap.querySelector(".gt-filter"), sel=wrap.querySelector(".gt-sort"),
+            gridEl=wrap.querySelector(".grid.cols"), shownEl=wrap.querySelector(".gt-shown"),
+            emptyEl=wrap.querySelector(".gt-empty");
+      if(!gridEl) return;
+      const cards=[...gridEl.querySelectorAll(".song-card")], orig=cards.slice();
+      const applyFilter=()=>{
+        const q=(inp.value||"").trim().toLowerCase(); let n=0;
+        cards.forEach(c=>{ const ok=!q||(c.getAttribute("data-f")||"").indexOf(q)>=0;
+          c.style.display=ok?"":"none"; if(ok)n++; });
+        if(shownEl) shownEl.textContent=n;
+        if(emptyEl) emptyEl.style.display=n?"none":"";
+      };
+      const sortBy=v=>{
+        const arr=orig.slice();
+        if(v==="yr-asc") arr.sort((a,b)=>(+a.getAttribute("data-yr"))-(+b.getAttribute("data-yr")));
+        else if(v==="yr-desc") arr.sort((a,b)=>(+b.getAttribute("data-yr"))-(+a.getAttribute("data-yr")));
+        else if(v==="ti") arr.sort((a,b)=>(a.getAttribute("data-ti")||"").localeCompare(b.getAttribute("data-ti")||""));
+        else if(v==="ar") arr.sort((a,b)=>(a.getAttribute("data-ar")||"").localeCompare(b.getAttribute("data-ar")||""));
+        arr.forEach(c=>gridEl.appendChild(c));   // 就地重排，节点不重建
+      };
+      if(inp) inp.addEventListener("input",applyFilter);
+      if(sel) sel.addEventListener("change",()=>sortBy(sel.value));
+    });
+  }
   function hydratePortraits(){
     // 少量、在视口附近的（人物页小传卡、首页精选）即时加载
     document.querySelectorAll(".ah-medal[data-portrait],.fa-medal[data-portrait]").forEach(el=>{
@@ -457,7 +484,9 @@
   }
 
   function albumCard(a){
-    return `<article class="song-card" onclick="location.hash='#/album/${a.id}'">
+    const f=(a.title+" "+a.artist+" "+a.label+" "+a.year+" "+((BIOS[a.artist]||{}).zh||"")).toLowerCase();
+    const ti=a.title.replace(/^[^:]+:\s*/,"").toLowerCase();
+    return `<article class="song-card" onclick="location.hash='#/album/${a.id}'" data-f="${esc(f)}" data-yr="${a.year}" data-ti="${esc(ti)}" data-ar="${esc(a.artist.toLowerCase())}">
       ${coverHTML(a,false,true)}
       ${favBtn(a.id)}
       <div class="meta">
@@ -470,6 +499,27 @@
   const grid = list => list.length
     ? `<div class="grid cols">${list.map(albumCard).join("")}</div>`
     : `<p class="empty">这里还没有专辑。</p>`;
+  // 结果内即时筛选 + 排序的工具条（大列表才出现，纯前端 show/hide + reorder，不重渲染、不丢已加载封面）
+  function gridSection(list){
+    if(list.length < 8) return grid(list);
+    return `<div class="grid-wrap">
+      <div class="grid-tools">
+        <input class="gt-filter" type="search" placeholder="在结果内筛选 · 标题 / 艺术家 / 厂牌 / 年份" autocomplete="off" aria-label="在结果内筛选">
+        <label class="gt-sortwrap">排序
+          <select class="gt-sort" aria-label="排序方式">
+            <option value="">默认</option>
+            <option value="yr-asc">年份 ↑ 早→晚</option>
+            <option value="yr-desc">年份 ↓ 晚→早</option>
+            <option value="ti">标题 A→Z</option>
+            <option value="ar">艺术家 A→Z</option>
+          </select>
+        </label>
+        <span class="gt-count"><b class="gt-shown">${list.length}</b> / ${list.length} 张</span>
+      </div>
+      ${grid(list)}
+      <p class="empty gt-empty" style="display:none">没有匹配的专辑，换个词试试。</p>
+    </div>`;
+  }
 
   function crumb(){ return `<div class="crumb"><a href="#/">← 返回首页</a></div>`; }
 
@@ -584,7 +634,7 @@
         <h1>${esc(e.name)}</h1><p>${esc(e.desc)}</p>
         <button class="radio-start sm" data-radio="era:${key}">🎙 本时期电台</button></div>
       <div class="section-head"><h2>本时期专辑</h2><span class="tag">${list.length} albums</span></div>
-      ${grid(list)}`;
+      ${gridSection(list)}`;
   }
 
   /* ---------- 流派 ---------- */
@@ -601,7 +651,7 @@
   }
   function genrePage(g){
     const list=ALBUMS.filter(a=>a.genres.includes(g));
-    return `${crumb()}<div class="section-head"><h2>流派 · ${esc(g)}</h2><span class="tag">${list.length} albums</span></div>${grid(list)}`;
+    return `${crumb()}<div class="section-head"><h2>流派 · ${esc(g)}</h2><span class="tag">${list.length} albums</span></div>${gridSection(list)}`;
   }
 
   /* ---------- 人物 ---------- */
@@ -709,7 +759,7 @@
   function moodPage(m){
     const list=ALBUMS.filter(a=>a.moods.includes(m));
     return `${crumb()}<div class="section-head"><h2>心情 · ${esc(m)}</h2><span class="tag">${list.length} albums</span>
-      <button class="radio-start sm" data-radio="mood:${esc(m)}">🎙 此心情电台</button></div>${grid(list)}`;
+      <button class="radio-start sm" data-radio="mood:${esc(m)}">🎙 此心情电台</button></div>${gridSection(list)}`;
   }
   function instrumentsPage(){
     const tiles=window.INSTRUMENTS.map(i=>{
@@ -720,7 +770,7 @@
   }
   function instrumentPage(i){
     const list=ALBUMS.filter(a=>a.instruments.includes(i));
-    return `${crumb()}<div class="section-head"><h2>乐器 · ${esc(i)}</h2><span class="tag">${list.length} albums</span></div>${grid(list)}`;
+    return `${crumb()}<div class="section-head"><h2>乐器 · ${esc(i)}</h2><span class="tag">${list.length} albums</span></div>${gridSection(list)}`;
   }
 
   /* ---------- 全部 / 搜索 ---------- */
@@ -734,7 +784,7 @@
     const head=q
       ? `<div class="section-head"><h2>搜索 "${esc(q)}"</h2><span class="tag">${list.length} 个结果</span></div>`
       : `<div class="section-head"><h2>全部专辑</h2><span class="tag">${list.length} albums</span></div>`;
-    return `${crumb()}${head}${grid(list)}`;
+    return `${crumb()}${head}${gridSection(list)}`;
   }
 
   /* ---------- 详情 ---------- */
@@ -871,7 +921,7 @@
     if(!list.length) return `${crumb()}${head}<p class="empty">还没有收藏。在任意专辑上点 ♥ 即可，收藏只保存在本机浏览器。</p>`;
     return `${crumb()}${head}
       <button class="radio-start sm" data-radio="faves">▶ 播放我的收藏 · 30 秒预览</button>
-      ${grid(list)}`;
+      ${gridSection(list)}`;
   }
   // 捕获阶段：♥ 在卡片(onclick)内，需在卡片导航前拦截
   document.addEventListener("click",ev=>{
@@ -960,6 +1010,7 @@
     hydrateCovers();
     hydratePortraits();
     hydrateArtistFilter();
+    hydrateGridTools();
     hydrateA11y();
   }
   // 无障碍：把 onclick 卡片变成可 Tab 聚焦、可回车/空格激活（配合 :focus-visible 金色焦点环）

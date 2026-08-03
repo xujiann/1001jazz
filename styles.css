@@ -287,9 +287,26 @@ body.radio-on{padding-bottom:4.8rem}   /* 常驻电台条不遮住页尾内容 *
   width:40px;height:40px;border-radius:50%;font-size:1.1rem;display:grid;place-items:center;transition:.18s}
 .fav-btn:hover{border-color:var(--red);color:var(--red)}
 .fav-btn.on{border-color:var(--red);color:var(--red);background:rgba(196,69,47,.14)}
-.d-title-row{display:flex;align-items:flex-start;gap:1rem}
+.d-title-row{display:flex;align-items:flex-start;gap:.7rem}
 .d-title-row h1{flex:1 1 auto;min-width:0}
-.d-title-row .fav-btn{margin-top:.35rem}
+.d-title-row .fav-btn,.d-title-row .share-btn{margin-top:.35rem}
+/* ---------- 分享按钮 + 轻提示 toast ---------- */
+.share-btn{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--ink-mute);cursor:pointer;
+  width:40px;height:40px;border-radius:50%;display:grid;place-items:center;transition:.18s}
+.share-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(216,164,74,.08)}
+.share-btn svg{width:18px;height:18px}
+.radio-start.ghost svg{width:16px;height:16px;margin-right:.1rem;vertical-align:-2px}
+.radio-start.ghost span{vertical-align:middle}
+.toast{position:fixed;left:50%;bottom:1.3rem;transform:translateX(-50%) translateY(12px);z-index:120;
+  background:rgba(20,16,12,.96);border:1px solid var(--gold);color:var(--ink);
+  font-family:var(--label);font-size:.86rem;letter-spacing:.03em;padding:.6rem 1.15rem;border-radius:999px;
+  box-shadow:0 12px 30px rgba(0,0,0,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;max-width:calc(100vw - 2rem)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+body.radio-on .toast{bottom:5.4rem}
+/* 路线页行动区：连播 + 分享并排 */
+.path-actions{display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;margin-top:1rem}
+.path-actions .radio-start{margin-top:0}
 /* ---------- 引导路线 ---------- */
 .paths-lead{color:var(--ink-soft);max-width:640px;margin:-.6rem 0 1.4rem}
 .path-tile .path-sub{font-family:var(--label);font-size:.75rem;color:var(--gold-soft);letter-spacing:.03em;margin:.1rem 0 .35rem}

@@ -811,7 +811,7 @@
       </div>
       <div>
         <div class="d-album-kicker">${esc(a.label)} · ${a.year}</div>
-        <div class="d-title-row"><h1>${esc(a.title.replace(/^[^:]+:\s*/,""))}</h1>${favBtn(a.id)}</div>
+        <div class="d-title-row"><h1>${esc(a.title.replace(/^[^:]+:\s*/,""))}</h1>${favBtn(a.id)}${shareBtn(a.title.replace(/^[^:]+:\s*/,"")+" · "+a.artist, a.title.replace(/^[^:]+:\s*/,"")+" · "+a.artist+"（"+a.year+"）— 1001 Jazz 爵士必听地图")}</div>
         <div class="d-artist"><a href="#/artist/${enc(a.artist)}">${esc(a.artist)}</a>${(BIOS[a.artist]&&BIOS[a.artist].zh)?`<span class="d-artist-zh">${esc(BIOS[a.artist].zh)}</span>`:""}</div>
         <div class="tags">${tagLinks(a.genres,"genre")}</div>
         <dl class="facts">
@@ -932,6 +932,66 @@
     if(location.hash.indexOf("#/faves")===0 && !on){ const c=b.closest(".song-card"); if(c) c.remove(); }
   },true);
 
+  /* ---------- 分享 / 深链：Web Share API + 剪贴板兜底 + 轻提示 ---------- */
+  const SHARE_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 16V3"/><path d="M8 7l4-4 4 4"/></svg>';
+  function shareBtn(title,text){
+    return `<button class="share-btn" data-share data-stitle="${esc(title||"")}" data-stext="${esc(text||"")}" aria-label="分享 / 复制本页链接" title="分享 · 复制本页链接">${SHARE_ICON}</button>`;
+  }
+  let toastEl=null,toastTimer=null;
+  function toast(msg){
+    if(!toastEl){ toastEl=document.createElement("div"); toastEl.className="toast"; toastEl.setAttribute("role","status"); document.body.appendChild(toastEl); }
+    toastEl.textContent=msg; toastEl.classList.add("show");
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove("show"),2200);
+  }
+  function fallbackCopy(t){ try{ const ta=document.createElement("textarea"); ta.value=t;
+    ta.style.cssText="position:fixed;top:0;left:0;opacity:0"; document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok=document.execCommand("copy"); ta.remove(); return ok; }catch(e){ return false; } }
+  function copyText(t){
+    if(navigator.clipboard && navigator.clipboard.writeText)
+      return navigator.clipboard.writeText(t).then(()=>true).catch(()=>fallbackCopy(t));
+    return Promise.resolve(fallbackCopy(t));
+  }
+  document.addEventListener("click",ev=>{
+    const b=ev.target.closest && ev.target.closest("[data-share]"); if(!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const url=location.href, title=b.getAttribute("data-stitle")||document.title, text=b.getAttribute("data-stext")||title;
+    if(navigator.share){ navigator.share({title,text,url}).catch(()=>{}); return; }
+    copyText(url).then(ok=>toast(ok?"链接已复制到剪贴板 ✓":"复制失败，请长按手动复制"));
+  });
+
+  /* ---------- 页面标题 / meta 随路由更新（书签、标签页、历史、分享文案） ---------- */
+  const DEFAULT_TITLE="1001 Jazz｜一千零一张爵士必听专辑地图";
+  const DEFAULT_DESC=(function(){ const m=document.head.querySelector('meta[name="description"]'); return m?m.getAttribute("content"):""; })();
+  function setMeta(title,desc){
+    const full=title?title+" · 1001 Jazz":DEFAULT_TITLE;
+    document.title=full;
+    const set=(sel,val)=>{ const el=document.head.querySelector(sel); if(el&&val!=null) el.setAttribute("content",val); };
+    set('meta[property="og:title"]',full); set('meta[name="twitter:title"]',full);
+    set('meta[property="og:url"]',location.href);
+    if(desc){ set('meta[name="description"]',desc); set('meta[property="og:description"]',desc); set('meta[name="twitter:description"]',desc); }
+  }
+  function applyRouteMeta(parts){
+    const p0=parts[0]||"", id=parts[1]; let t="",d=DEFAULT_DESC;
+    if(p0==="album"||p0==="song"){ const a=albumById.get(id); if(a){ t=a.title.replace(/^[^:]+:\s*/,"")+" · "+a.artist; d=a.reason; } }
+    else if(p0==="artist"){ if(ALBUMS.some(x=>x.artist===id)){ const b=BIOS[id]; t=(b&&b.zh)?b.zh+" "+id:id; d=b?b.bio:id+" 的爵士唱片与中文导读"; } }
+    else if(p0==="era"){ const e=eraMap[id]; if(e){ t=e.name.split(" / ")[0]; d=e.desc; } }
+    else if(p0==="genre"){ t="流派 · "+id; d=id+" 流派的爵士必听专辑"; }
+    else if(p0==="mood"){ t="心情 · "+id; d="适合「"+id+"」时刻的爵士专辑精选"; }
+    else if(p0==="instrument"){ t="乐器 · "+id; d=id+" 主奏的爵士必听专辑"; }
+    else if(p0==="path"){ const pp=(window.PATHS||[]).find(x=>x.key===id); if(pp){ t=pp.title; d=pp.intro; } }
+    else if(p0==="paths"){ t="引导聆听路线"; }
+    else if(p0==="faves"){ t="我的收藏"; }
+    else if(p0==="artists"){ t="按人物浏览"; }
+    else if(p0==="eras"){ t="按年代浏览"; }
+    else if(p0==="genres"){ t="按流派浏览"; }
+    else if(p0==="moods"){ t="按心情浏览"; }
+    else if(p0==="instruments"){ t="按乐器浏览"; }
+    else if(p0==="all"){ t="全部专辑"; }
+    else if(p0==="search"){ t="搜索"; }
+    else if(p0==="about"){ t="关于本站"; }
+    setMeta(t,d);
+  }
+
   /* ---------- 引导聆听路线 ---------- */
   function pathsPage(){
     const P=window.PATHS||[];
@@ -956,7 +1016,10 @@
     return `${crumb()}
       <div class="path-hero"><div class="kicker">聆听路线 · ${p.stops.length} 张</div>
         <h1>${esc(p.title)}</h1><div class="path-sub">${esc(p.sub)}</div><p>${esc(p.intro)}</p>
-        <button class="radio-start" data-radio="path:${p.key}">▶ 按这条路线连播 · 30 秒预览</button></div>
+        <div class="path-actions">
+          <button class="radio-start" data-radio="path:${p.key}">▶ 按这条路线连播 · 30 秒预览</button>
+          <button class="radio-start ghost" data-share data-stitle="${esc(p.title)}" data-stext="${esc("聆听路线：“"+p.title+"” — 1001 Jazz 爵士地图")}">${SHARE_ICON}<span>分享路线</span></button>
+        </div></div>
       <div class="path-stops">${stops}</div>`;
   }
 
@@ -1004,7 +1067,8 @@
       case "search":{const m=/q=([^&]*)/.exec(query||"");html=allPage(m?decodeURIComponent(m[1]):"");break;}
       default: html=notFound();
     }
-    }catch(err){ console.error("router error:",err); html=notFound(); }
+    applyRouteMeta(parts);
+    }catch(err){ console.error("router error:",err); html=notFound(); setMeta("",DEFAULT_DESC); }
     app.innerHTML=html;
     window.scrollTo({top:0,behavior:"instant"});
     hydrateCovers();

@@ -520,7 +520,11 @@
         <div class="stat"><b>${window.MOODS.length}</b><span>心情入口</span></div>
         <div class="stat"><b>${window.INSTRUMENTS.length}</b><span>乐器入口</span></div>
       </div>
-      <button class="radio-start" data-radio="all">🎙 随机试听电台 · 边逛边听</button>
+      <div class="hero-actions">
+        <button class="radio-start" data-radio="all">🎙 随机试听电台 · 边逛边听</button>
+        <button class="radio-start ghost" data-surprise>🎲 随机一张 · 手气不错</button>
+      </div>
+      <div class="kbd-hint"><kbd>/</kbd> 搜索　<kbd>R</kbd> 随机一张</div>
     </section>
 
     <section class="section">
@@ -975,6 +979,27 @@
     if(t==="A"||t==="BUTTON"||t==="INPUT"||t==="TEXTAREA"||t==="SELECT") return;
     ev.preventDefault();
     el.click();
+  });
+
+  /* ---------- 随机漫游：从 1001 张里随机跳一张（避开当前这张） ---------- */
+  function randomAlbumId(){
+    let id; do{ id=ALBUMS[Math.floor(Math.random()*ALBUMS.length)].id; }
+    while(ALBUMS.length>1 && location.hash==="#/album/"+id);
+    return id;
+  }
+  document.addEventListener("click",ev=>{
+    const el=ev.target.closest && ev.target.closest("[data-surprise]"); if(!el) return;
+    ev.preventDefault(); location.hash="#/album/"+randomAlbumId();
+  });
+  // 全局键盘快捷键：/ 聚焦搜索、R 随机一张、Esc 退出搜索（输入态内不劫持）
+  document.addEventListener("keydown",ev=>{
+    if(ev.metaKey||ev.ctrlKey||ev.altKey) return;
+    const el=ev.target, t=el&&el.tagName;
+    const typing=t==="INPUT"||t==="TEXTAREA"||t==="SELECT"||(el&&el.isContentEditable);
+    if(ev.key==="Escape"){ if(typing && el.blur) el.blur(); return; }
+    if(typing) return;
+    if(ev.key==="/"){ const s=document.getElementById("globalSearch"); if(s){ ev.preventDefault(); s.focus(); s.select&&s.select(); } }
+    else if(ev.key==="r"||ev.key==="R"){ ev.preventDefault(); location.hash="#/album/"+randomAlbumId(); }
   });
   window.addEventListener("hashchange",router);
   window.addEventListener("DOMContentLoaded",router);

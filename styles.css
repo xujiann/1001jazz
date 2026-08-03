@@ -90,6 +90,15 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .hero .stat{font-family:var(--label)}
 .hero .stat b{display:block;font-size:2rem;color:var(--gold);font-weight:600;line-height:1}
 .hero .stat span{font-size:.78rem;color:var(--ink-mute);letter-spacing:.12em}
+/* 首页行动区：随机试听电台 + 随机一张 */
+.hero-actions{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-top:1.7rem}
+.hero-actions .radio-start{margin-top:0}
+.radio-start.ghost{border-color:var(--line);color:var(--ink-soft);background:rgba(255,255,255,.03)}
+.radio-start.ghost:hover{border-color:var(--gold);color:var(--gold);background:rgba(216,164,74,.08);box-shadow:none;transform:translateY(-2px)}
+.kbd-hint{margin-top:1rem;font-family:var(--label);font-size:.72rem;letter-spacing:.06em;color:var(--ink-mute)}
+.kbd-hint kbd{font-family:var(--label);font-size:.7rem;color:var(--gold-soft);background:var(--panel-2);
+  border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:.05rem .4rem;margin:0 .15rem}
+@media (hover:none){.kbd-hint{display:none}}   /* 触摸设备无实体键盘，隐藏快捷键提示 */
 
 /* ---------- timeline ---------- */
 .timeline{display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.8rem;scroll-snap-type:x proximity}
@@ -257,7 +266,8 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .pl-track.playing .pl-prog{opacity:.9}
 /* 专辑卡角标 ♥ */
 .song-card{position:relative}
-.song-card>.fav-btn{position:absolute;top:.5rem;left:.5rem;z-index:6;width:32px;height:32px;font-size:.9rem;
+/* 角标 ♥ 放右上：左上留给厂牌标(.c-label)，右下留给年份(.c-year)，互不遮挡 */
+.song-card>.fav-btn{position:absolute;top:.5rem;right:.5rem;left:auto;z-index:6;width:32px;height:32px;font-size:.9rem;
   background:rgba(0,0,0,.42);backdrop-filter:blur(3px);border-color:transparent;color:rgba(255,255,255,.85);opacity:0;transition:opacity .18s ease,color .18s ease,background .18s ease}
 .song-card:hover>.fav-btn,.song-card>.fav-btn.on{opacity:1}
 .song-card>.fav-btn:hover{background:rgba(0,0,0,.6);color:var(--red)}

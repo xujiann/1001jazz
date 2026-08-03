@@ -245,6 +245,24 @@ main{max-width:1180px;margin:0 auto;padding:clamp(1.4rem,4vw,3rem) clamp(1rem,4v
 .rb-track{font-family:var(--serif);font-size:.95rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rb-sub{font-family:var(--label);font-size:.72rem;color:var(--ink-mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em}
 .rb-close{font-size:.85rem!important;color:var(--ink-mute)!important}
+.radio-bar{padding-bottom:.85rem}
+.rb-thumb{flex:0 0 auto;width:38px;height:38px;border-radius:8px;background:var(--panel-2) center/cover;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.rb-pos{flex:0 0 auto;font-family:var(--label);font-size:.72rem;color:var(--gold-soft);letter-spacing:.03em;white-space:nowrap}
+.rb-pos:empty{display:none}
+.rb-progress{position:absolute;left:.7rem;right:.7rem;bottom:.28rem;height:2px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+.rb-progress>i{display:block;height:100%;width:0;background:var(--gold);border-radius:2px;transition:width .25s linear}
+/* 详情曲目进度线 */
+.pl-track{position:relative;overflow:hidden}
+.pl-prog{position:absolute;left:0;bottom:0;height:2px;width:100%;background:var(--gold);transform:scaleX(0);transform-origin:left;opacity:0;transition:transform .25s linear}
+.pl-track.playing .pl-prog{opacity:.9}
+/* 专辑卡角标 ♥ */
+.song-card{position:relative}
+.song-card>.fav-btn{position:absolute;top:.5rem;left:.5rem;z-index:6;width:32px;height:32px;font-size:.9rem;
+  background:rgba(0,0,0,.42);backdrop-filter:blur(3px);border-color:transparent;color:rgba(255,255,255,.85);opacity:0;transition:opacity .18s ease,color .18s ease,background .18s ease}
+.song-card:hover>.fav-btn,.song-card>.fav-btn.on{opacity:1}
+.song-card>.fav-btn:hover{background:rgba(0,0,0,.6);color:var(--red)}
+.song-card>.fav-btn.on{color:var(--red);background:rgba(0,0,0,.5)}
+@media (hover:none){ .song-card>.fav-btn{opacity:.85} }
 body.radio-on{padding-bottom:4.8rem}   /* 常驻电台条不遮住页尾内容 */
 /* ---------- 关系网 chips ---------- */
 .conn{border-top:1px solid var(--line);padding-top:1.5rem;margin-top:2rem}

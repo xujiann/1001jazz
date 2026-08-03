@@ -135,12 +135,15 @@
   let audioEl=null, curTrack=null;
   function fmtDur(ms){ const s=Math.round((ms||0)/1000); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
   function markPlaying(el,on){ if(!el) return; el.classList.toggle("playing",on);
-    const b=el.querySelector(".pl-btn"); if(b){ b.textContent=on?"⏸":"▶"; b.setAttribute("aria-label",(on?"暂停 ":"试听 ")+(el.getAttribute("data-name")||"")); } }
+    const b=el.querySelector(".pl-btn"); if(b){ b.textContent=on?"⏸":"▶"; b.setAttribute("aria-label",(on?"暂停 ":"试听 ")+(el.getAttribute("data-name")||"")); }
+    if(!on){ const p=el.querySelector(".pl-prog"); if(p) p.style.transform="scaleX(0)"; } }
   function ensureAudio(){
     if(audioEl) return audioEl;
     audioEl=document.createElement("audio"); audioEl.preload="none";
     audioEl.addEventListener("ended",()=>{ if(!curTrack) return; markPlaying(curTrack,false);
       const nx=curTrack.nextElementSibling; if(nx && nx.classList.contains("pl-track")) playTrack(nx); else curTrack=null; });
+    audioEl.addEventListener("timeupdate",()=>{ if(!curTrack) return; const p=curTrack.querySelector(".pl-prog");
+      if(p&&audioEl.duration) p.style.transform="scaleX("+(audioEl.currentTime/audioEl.duration)+")"; });
     document.body.appendChild(audioEl);
     return audioEl;
   }
@@ -178,7 +181,7 @@
     box.dataset.filled="1";
     const items=tracks.map(t=>`<li class="pl-track" data-preview="${esc(t.preview)}" data-name="${esc(t.name)}">
       <button class="pl-btn" aria-label="试听 ${esc(t.name)}">▶</button>
-      <span class="pl-name">${esc(t.name)}</span><span class="pl-dur">${t.ms?fmtDur(t.ms):""}</span></li>`).join("");
+      <span class="pl-name">${esc(t.name)}</span><span class="pl-dur">${t.ms?fmtDur(t.ms):""}</span><span class="pl-prog"></span></li>`).join("");
     box.innerHTML=`<div class="pl-head">▶ 页内试听 · 每首 30 秒<small>预览来自 Apple / iTunes</small></div><ol class="pl-list">${items}</ol>`;
   }
   function applyPlayer(albumId,cid){
@@ -189,7 +192,7 @@
   }
 
   /* ---------- 随机试听电台：跨专辑连播 30 秒预览，常驻迷你播放器（导航不中断） ---------- */
-  let radioAudio=null, radioQueue=[], radioIdx=-1, radioOn=false, radioAlbum=null, radioBar=null, radioSkips=0;
+  let radioAudio=null, radioQueue=[], radioIdx=-1, radioOn=false, radioAlbum=null, radioBar=null, radioSkips=0, radioOrdered=false;
   function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t; } return a; }
   const shortTitle=a=>a.title.replace(/^[^:]+:\s*/,"")+" · "+a.artist;
   // 取专辑的苹果 collectionId：缓存命中或即时 iTunes 搜索
@@ -211,23 +214,37 @@
     radioAudio=document.createElement("audio"); radioAudio.preload="none";
     radioAudio.addEventListener("ended",()=>{ radioSkips=0; radioNext(); });
     radioAudio.addEventListener("play",updateRadioToggle); radioAudio.addEventListener("pause",updateRadioToggle);
+    radioAudio.addEventListener("timeupdate",()=>{ const pr=radioBar&&radioBar.querySelector(".rb-progress>i");
+      if(pr&&radioAudio.duration) pr.style.width=(radioAudio.currentTime/radioAudio.duration*100)+"%"; });
     document.body.appendChild(radioAudio); return radioAudio; }
   function ensureRadioBar(){ if(radioBar) return radioBar;
     radioBar=document.createElement("div"); radioBar.className="radio-bar"; radioBar.hidden=true;
-    radioBar.innerHTML='<button class="rb-toggle" aria-label="播放/暂停">⏸</button>'+
+    radioBar.innerHTML='<span class="rb-thumb"></span>'+
+      '<button class="rb-toggle" aria-label="播放/暂停">⏸</button>'+
       '<div class="rb-info"><div class="rb-track">试听电台</div><div class="rb-sub"></div></div>'+
-      '<button class="rb-next" aria-label="下一首">⏭</button><button class="rb-close" aria-label="关闭电台">✕</button>';
+      '<span class="rb-pos"></span>'+
+      '<button class="rb-next" aria-label="下一首">⏭</button><button class="rb-close" aria-label="关闭电台">✕</button>'+
+      '<div class="rb-progress"><i></i></div>';
     radioBar.querySelector(".rb-toggle").addEventListener("click",radioToggle);
     radioBar.querySelector(".rb-next").addEventListener("click",()=>{ radioSkips=0; radioNext(); });
     radioBar.querySelector(".rb-close").addEventListener("click",stopRadio);
     radioBar.querySelector(".rb-info").addEventListener("click",()=>{ if(radioAlbum) location.hash="#/album/"+radioAlbum.id; });
+    radioBar.querySelector(".rb-thumb").addEventListener("click",()=>{ if(radioAlbum) location.hash="#/album/"+radioAlbum.id; });
     document.body.appendChild(radioBar); return radioBar; }
-  function updateRadioBar(track,sub){ const b=ensureRadioBar(); b.querySelector(".rb-track").textContent=track; b.querySelector(".rb-sub").textContent=sub||""; }
+  function updateRadioBar(track,sub){ const b=ensureRadioBar();
+    b.querySelector(".rb-track").textContent=track; b.querySelector(".rb-sub").textContent=sub||"";
+    const th=b.querySelector(".rb-thumb");
+    if(radioAlbum){ const cov=coverCache[radioAlbum.id];
+      if(cov) th.style.background="#0c0a08 url("+cov+") center/cover";
+      else { const h=hashStr(radioAlbum.artist+radioAlbum.title)%360; th.style.background=`linear-gradient(150deg,hsl(${h} 42% 30%),hsl(${(h+40)%360} 48% 12%))`; } }
+    b.querySelector(".rb-pos").textContent = radioOrdered ? (radioIdx+1)+" / "+radioQueue.length : "";
+    const pr=b.querySelector(".rb-progress>i"); if(pr) pr.style.width="0%";
+  }
   function startRadio(albums,ordered){
     stopPreview();
     const pool=(albums&&albums.length)?albums:ALBUMS;
     radioQueue = ordered ? pool.slice() : shuffle(pool);
-    radioIdx=-1; radioOn=true; radioSkips=0;
+    radioIdx=-1; radioOn=true; radioSkips=0; radioOrdered=!!ordered;
     ensureRadioBar().hidden=false; document.body.classList.add("radio-on");
     updateRadioBar("解析中…","随机试听电台"); radioNext();
   }
@@ -442,6 +459,7 @@
   function albumCard(a){
     return `<article class="song-card" onclick="location.hash='#/album/${a.id}'">
       ${coverHTML(a,false,true)}
+      ${favBtn(a.id)}
       <div class="meta">
         <div class="s-title">${esc(a.title.replace(/^[^:]+:\s*/,""))}</div>
         <div class="s-artist">${esc(a.artist)}</div>
@@ -851,13 +869,14 @@
       <button class="radio-start sm" data-radio="faves">▶ 播放我的收藏 · 30 秒预览</button>
       ${grid(list)}`;
   }
+  // 捕获阶段：♥ 在卡片(onclick)内，需在卡片导航前拦截
   document.addEventListener("click",ev=>{
     const b=ev.target.closest && ev.target.closest("[data-fav]"); if(!b) return;
     ev.preventDefault(); ev.stopPropagation();
     const on=toggleFav(b.getAttribute("data-fav"));
     b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
     if(location.hash.indexOf("#/faves")===0 && !on){ const c=b.closest(".song-card"); if(c) c.remove(); }
-  });
+  },true);
 
   /* ---------- 引导聆听路线 ---------- */
   function pathsPage(){
